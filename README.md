@@ -7,9 +7,13 @@ or System 2 (deliberate, LLM structured output) intelligence.
 
 ## Install
 
-```typescript
+```bash
 npm install smart-decisions
+```
+
 Usage
+
+``typescript
 import { choices } from "smart-decisions";
 
 console.log(choices());
