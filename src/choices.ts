@@ -1,5 +1,5 @@
-import type { ChoicesOptions } from "./types.js";
+import type { ChoicesOptions } from './types.js';
 
-export function choices(options?: ChoicesOptions): string {
-    return "hello world";
+export function choices(_options?: ChoicesOptions): string {
+    return 'hello world';
 }

@@ -18,7 +18,9 @@ import { choices } from "smart-decisions";
 
 console.log(choices());
 // TODO: placeholder — real implementation coming
+
 ```
 
 License
 MIT
+```
