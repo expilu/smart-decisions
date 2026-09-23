@@ -1,8 +1,8 @@
 {
   "name": "smart-decisions",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "A TypeScript library that returns choices from System 1 (logit-based) or System 2 (LLM structured output) intelligence.",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,11 +10,30 @@
     "type": "git",
     "url": "git+https://github.com/expilu/smart-decisions.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "decisions",
+    "choices",
+    "llm",
+    "system1",
+    "system2",
+    "typescript"
+  ],
+  "author": "Daniel López Lacalle",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/expilu/smart-decisions/issues"
   },
-  "homepage": "https://github.com/expilu/smart-decisions#readme"
+  "homepage": "https://github.com/expilu/smart-decisions#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }
