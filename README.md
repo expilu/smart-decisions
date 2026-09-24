@@ -14,9 +14,9 @@ npm install smart-decisions
 Usage
 
 ```typescript
-import { choices } from 'smart-decisions';
+import { choice } from 'smart-decisions';
 
-console.log(choices());
+console.log(choice());
 // TODO: placeholder — real implementation coming
 ```
 

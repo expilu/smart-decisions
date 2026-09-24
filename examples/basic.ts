@@ -1,5 +1,5 @@
-import { choices } from '../src/index.js';
+import { choice } from '../src/index.js';
 
-const result = choices();
+const result = choice();
 
 console.log(result);
