@@ -15,9 +15,9 @@ describe('normalizeEntropy', () => {
   it('returns partial confidence for a leaned distribution (0.75/0.25)', () => {
     // Shape of the message: 1 - H/ln(n). For [0.75, 0.25] the Shannon entropy is 0.562335,
     // and ln(2) = 0.693147, so the value below is derived analytically, not hard-coded.
-    expect(
-      normalizeEntropy([0.75, 0.25]),
-    ).toBeCloseTo(1 + (0.75 * Math.log(0.75) + 0.25 * Math.log(0.25)) / Math.log(2));
+    expect(normalizeEntropy([0.75, 0.25])).toBeCloseTo(
+      1 + (0.75 * Math.log(0.75) + 0.25 * Math.log(0.25)) / Math.log(2),
+    );
   });
 
   it('accounts for the number of options in the normalization', () => {
