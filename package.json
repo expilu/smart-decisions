@@ -9,6 +9,7 @@
     "format:check": "prettier --check .",
     "build": "tsc",
     "test": "vitest run",
+    "example": "tsx examples/basic.ts",
     "prepublishOnly": "npm run lint && npm run format:check && npm run build && npm test"
   },
   "repository": {
@@ -45,6 +46,7 @@
     "eslint": "^10.11.0",
     "jiti": "^2.7.0",
     "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
