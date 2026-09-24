@@ -112,7 +112,12 @@ lists (up to 26 options) will be slower on the same hardware.
 
 ## How it works under the hood
 
-System 1 asks the model a single question and reads the answer's **token logprobs**:
+The key trick: an LLM always computes a **probability distribution over all possible
+tokens** before it answers — we just need the right request to _receive_ that
+distribution. That's only guaranteed with an actual generation, so we ask for one with just one token, but **the generated token itself is irrelevant and gets discarded**. What matters is the letter logits that make up the probability distribution over our options.
+
+System 1 asks the model a single question and reads the logprobs of the answer's
+first (and only) generated token:
 
 1. Each option (`criteria` key) is assigned a letter of the alphabet (2–26 options,
    one per letter) and rendered in the prompt as `A: name — description`.
@@ -122,8 +127,9 @@ System 1 asks the model a single question and reads the answer's **token logprob
    - `temperature: 0` (greedy: always the most likely letter)
    - `top_logprobs: 50` (wide enough window that every declared letter — and its token variants — lands in the report)
    - thinking-reasoning disabled (avoid wasting this one token on a think tag)
-3. The first generated token is the answer; its `top_logprobs` (aka logits) report declares the
-   candidate letters. Each letter's candidate tokens appear in several variants
+3. What we read is not the answer text itself (it is thrown away): the winning
+   option is whichever letter carried the highest generated probability. The
+   report declares all candidate letters; each letter appears as token variants
    (case, leading space, BOS…) — the highest probability among them wins.
 4. Letter probabilities are normalized into the `probabilities` map (sums to 1);
    the option letters never showing up fall back to a uniform distribution
