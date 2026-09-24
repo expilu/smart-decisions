@@ -43,6 +43,7 @@
     "dist"
   ],
   "devDependencies": {
+    "@types/node": "^22",
     "eslint": "^10.11.0",
     "jiti": "^2.7.0",
     "prettier": "^3.9.9",
@@ -50,5 +51,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "openai": "^7.23.0"
   }
 }

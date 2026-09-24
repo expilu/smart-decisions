@@ -1,2 +1,2 @@
-export { choice } from './choice.js';
-export type { ChoicesMode, ChoicesOptions } from './types.js';
+export { choice } from './choice/choice.js';
+export type { ChoiceMode, Question } from './types.js';
