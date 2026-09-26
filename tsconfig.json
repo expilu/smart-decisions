@@ -2,9 +2,7 @@
   "compilerOptions": {
     "module": "nodenext",
     "target": "es2023",
-    "types": [],
-    "sourceMap": true,
-    "declaration": true,
+    "types": ["node"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "strict": true,
@@ -13,8 +11,7 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": false,
-    "rootDir": "./src",
-    "outDir": "./dist"
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "test", "examples"]
 }

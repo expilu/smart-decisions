@@ -1,16 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { system1Choice } from '../../src/choice/system1-choice.js';
 
-// Mock the OpenAI client at module level: system1Choice is its direct user.
-// All mocked responses below return logprobs-shaped bodies, so tests only need
+// system1Choice is exercised through the global fetch: each mocked response below is a
+// real Response carrying a logprobs-shaped body, so tests only need
 // `choices[0].logprobs.content[0].top_logprobs` to exist.
-const createMock = vi.hoisted(() => vi.fn());
+const fetchMock = vi.fn();
 
-vi.mock('openai', () => ({
-  default: class {
-    chat = { completions: { create: createMock } };
-  },
-}));
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 // Running example: "It is raining and I am at home. I'm bored." — choose a plan
 // for right now (walking or a movie fit a rainy day at home, the beach does not);
@@ -29,20 +32,17 @@ const question = () => ({
 });
 
 const logprobToken = (token: string, logprob: number) => ({ token, logprob });
-const response = (tops: { token: string; logprob: number }[]) => ({
-  choices: [{ logprobs: { content: [{ top_logprobs: tops }] } }],
-});
-
-beforeEach(() => {
-  createMock.mockReset();
-});
+const response = (tops: { token: string; logprob: number }[]) =>
+  new Response(JSON.stringify({ choices: [{ logprobs: { content: [{ top_logprobs: tops }] } }] }), {
+    status: 200,
+  });
 
 describe('system1Choice', () => {
   it('throws with fewer than 2 options', async () => {
     await expect(
       system1Choice({ ...question(), criteria: { only: 'one option' } }),
     ).rejects.toThrow('choice() supports 2..26 options, got 1');
-    expect(createMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('throws with more than 26 options', async () => {
@@ -50,41 +50,59 @@ describe('system1Choice', () => {
     await expect(system1Choice({ ...question(), criteria })).rejects.toThrow(
       'choice() supports 2..26 options, got 27',
     );
-    expect(createMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('throws when the provider response has no logprobs', async () => {
-    createMock.mockResolvedValueOnce({ choices: [{ logprobs: null }] });
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ choices: [{ logprobs: null }] }), { status: 200 }),
+    );
     await expect(system1Choice(question())).rejects.toThrow('system1 requires logprobs');
   });
 
   it('throws when the provider response has an empty top logprobs list', async () => {
-    createMock.mockResolvedValueOnce(response([]));
+    fetchMock.mockResolvedValueOnce(response([]));
     await expect(system1Choice(question())).rejects.toThrow('system1 requires logprobs');
-    expect(createMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('makes a single-token greedy logprobs request', async () => {
-    createMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
+    fetchMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
     await system1Choice(question());
 
-    expect(createMock).toHaveBeenCalledOnce();
-    const params = createMock.mock.calls[0][0] as Record<string, unknown>;
+    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(String(url)).toBe('https://example.com/v1/chat/completions');
+    expect(init.method).toBe('POST');
+    const params = JSON.parse(init.body as string);
     expect(params.model).toBe('model');
     expect(params.max_tokens).toBe(1); // one forward pass, one generated token
     expect(params.temperature).toBe(0);
     expect(params.logprobs).toBe(true);
     expect(params.top_logprobs).toBe(50);
     expect(params.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(params.stream).toBe(false);
     // Prompt includes the lettered options and the single-letter instruction.
-    expect((params.messages as { content: string }[])[0].content).toContain(
-      'A: walk — Go for a walk',
-    );
-    expect((params.messages as { content: string }[])[0].content).toContain('exactly one letter');
+    expect(params.messages[0].content).toContain('A: walk — Go for a walk');
+    expect(params.messages[0].content).toContain('exactly one letter');
+  });
+
+  it('forwards retry and timeout settings to the transport', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    try {
+      // maxRetries: 0 → the retryable 500 is not retried, proving forwarding end to end.
+      fetchMock.mockResolvedValueOnce(new Response('down', { status: 500 }));
+      await expect(
+        system1Choice({ ...question(), maxRetries: 0, timeoutMs: 123456 }),
+      ).rejects.toThrow('LLM API returned HTTP 500: down');
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(timeoutSpy).toHaveBeenCalledWith(123456);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 
   it('groups token variants (case, leading space) and keeps the highest probability', async () => {
-    createMock.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       response([
         logprobToken(' A', Math.log(0.3)),
         logprobToken('a', Math.log(0.2)), // same letter, lower → dropped
@@ -101,7 +119,7 @@ describe('system1Choice', () => {
 
   it('normalizes to 1 when letters only account for part of the mass; tie keeps first option', async () => {
     // letters A and B at 0.25 each, another token has 0.5 → z = 0.5, so 0.5/0.5
-    createMock.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       response([
         logprobToken('A', Math.log(0.25)),
         logprobToken('B', Math.log(0.25)),
@@ -115,7 +133,7 @@ describe('system1Choice', () => {
   });
 
   it('falls back to uniform when no letter appears in the top logprobs', async () => {
-    createMock.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       response([logprobToken('2', Math.log(1.0)), logprobToken('!', Math.log(0.5))]),
     );
     const answer = await system1Choice(question());
@@ -127,7 +145,7 @@ describe('system1Choice', () => {
   });
 
   it('matches confidence to the normalized entropy of the returned distribution', async () => {
-    createMock.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       response([
         logprobToken(' A', Math.log(0.6)),
         logprobToken(' B', Math.log(0.3)),
@@ -149,7 +167,7 @@ describe('system1Choice', () => {
   // only reduce whose callback declares (accumulator, value, index) — gets its
   // result overridden with an index beyond `names`.
   it('throws the internal invariant error if the argmax returns an out-of-range index', async () => {
-    createMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
+    fetchMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
     const native = Array.prototype.reduce;
     const impl = function (
       this: unknown[],
@@ -178,7 +196,7 @@ describe('system1Choice', () => {
   // array whose first slot is null. null coerces to 0 in the sum, so execution
   // stays on the normal path while both `?? 0` fallbacks fire.
   it('treats nullish probability slots as 0 instead of letting NaN propagate', async () => {
-    createMock.mockResolvedValueOnce(response([logprobToken('B', Math.log(0.4))]));
+    fetchMock.mockResolvedValueOnce(response([logprobToken('B', Math.log(0.4))]));
     const nativeMap = Array.prototype.map;
     const impl = function (this: unknown[], cb: unknown, ...args: unknown[]) {
       // entries.map receivers hold [name, description] pairs → run natively.
@@ -190,7 +208,7 @@ describe('system1Choice', () => {
     spy.mockImplementation(impl as unknown as typeof Array.prototype.map);
     try {
       const answer = await system1Choice(question());
-      expect(createMock).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledOnce();
       // z = null + 0.6 + 0.4 = 1 exactly, so normalization is a no-op;
       // the null slot surfaces as walk: 0 instead of NaN-poisoning the run.
       expect(answer.probabilities).toEqual({ walk: 0, movie: 0.6, beach: 0.4 });

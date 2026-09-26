@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { choice } from '../../src/index.js';
 import { system1Choice } from '../../src/choice/system1-choice.js';
+import type { Question } from '../../src/types/question.js';
 vi.mock('../../src/choice/system1-choice.js', () => ({
   system1Choice: vi.fn().mockResolvedValue({
     choice: 'mocked',
@@ -12,11 +13,12 @@ vi.mock('../../src/choice/system1-choice.js', () => ({
 const question = (
   mode?: 'system1' | 'system2',
   criteria: Record<string, string> = { a: 'A', b: 'B' },
-) => ({
+): Question => ({
   apiBaseUrl: 'https://example.com/v1',
   apiKey: 'key',
   model: 'model',
-  mode,
+  // Omitted when undefined: exactOptionalPropertyTypes forbids an explicit `mode: undefined`.
+  ...(mode !== undefined && { mode }),
   criteria,
   state: 'state',
   instructions: 'instructions',
