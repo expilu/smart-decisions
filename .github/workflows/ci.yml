@@ -1,0 +1,50 @@
+name: CI
+
+# Pull-request pipeline plus the always-on main baseline. Gate list mirrors
+# `prepublishOnly` exactly: CI green here means a release would pass too.
+# Failed tests land as inline annotations pinned to the changed lines; the
+# coverage bot posts a per-PR comment comparing coverage against main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  code-quality: write # lets github-code-quality[bot] post coverage on the PR
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24] # engines: >=22 — test the floor and the current LTS
+
+    steps:
+      - uses: actions/checkout@v4
+        # Pin the PR head SHA so coverage line numbers map onto the diff view.
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run test:coverage
+
+      - name: Upload coverage for PR comment
+        if: >-
+          matrix.node == 22 &&
+          github.event_name == 'pull_request' &&
+          !github.event.pull_request.head.repo.fork
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage/cobertura-coverage.xml
+          language: javascript

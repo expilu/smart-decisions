@@ -1,0 +1,51 @@
+name: Release
+
+# Two modes, decided by changesets/action:
+#  - pending changesets on main -> opens/updates the "Version Packages" PR
+#    (bumps package.json, rewrites CHANGELOG.md, syncs src/version.ts)
+#  - no pending changesets (a Version Packages PR was just merged)
+#    -> builds, publishes to npm with provenance (OIDC trusted publishing,
+#    no stored token), tags vX.Y.Z, creates the GitHub release from the
+#    CHANGELOG.md section.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # tag + GitHub release + Version Packages PR
+  pull-requests: write # Version Packages PR
+  id-token: write # npm trusted publishing (OIDC)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # npm >= 11.5 is required for OIDC trusted publishing.
+      - run: npm i -g npm@11
+
+      - run: npm ci
+
+      - uses: changesets/action@v1
+        id: changesets
+        with:
+          version: npx changeset version && node ./scripts/sync-version.mjs
+          publish: node ./scripts/release.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and create GitHub release
+        if: steps.changesets.outputs.published == 'true'
+        run: node ./scripts/github-release.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
