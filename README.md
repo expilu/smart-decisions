@@ -188,6 +188,7 @@ Planned
 
 - [x] System 1 (logit-based)
 - [ ] System 2 (LLM structured output, with reasoning / non-reasoning toggle)
+- [ ] mode: 'auto'
 - [ ] Test and adapt to more inference providers APIs and self hosted engines
 - [ ] Benchmarking and model sanity check tools
 - [ ] Final API
