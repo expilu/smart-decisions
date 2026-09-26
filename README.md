@@ -104,7 +104,7 @@ each decision costs next to nothing. Whether you pay in money (a hosted API bill
 per token) or in computation (your own server does one quick pass instead of a long
 reasoning chain).
 
-On modest hardware it is genuinely fast. Measured locally with my (aging) testing server
+On modest hardware it is genuinely fast. Measured locally with my (aging) testing server using
 [llama.cpp](https://github.com/ggml-org/llama.cpp) serving
 **Qwen3.5-4B Q4_K_M** on an **RTX 2080** (a 2018 card):
 
