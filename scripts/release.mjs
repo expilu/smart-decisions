@@ -46,7 +46,10 @@ if (registered) {
 
 const section = readFileSync('CHANGELOG.md', 'utf8')
   .split(/^## /m)
-  .find((s) => s.startsWith(`${version} `) || s.startsWith(`v${version} `));
+  .find((s) => {
+    const heading = s.split('\n', 1)[0].trim();
+    return heading === version || heading === `v${version}`;
+  });
 
 if (!section) {
   if (registered) {
