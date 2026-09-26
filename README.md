@@ -100,7 +100,7 @@ The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_pro
 ## Performance and cost
 
 System 1 answers are fulfilled with **one single forward pass generating exactly one token**, so
-each decision costs next to nothing — whether you pay in money (a hosted API bills
+each decision costs next to nothing. Whether you pay in money (a hosted API bills
 per token) or in computation (your own server does one quick pass instead of a long
 reasoning chain).
 
