@@ -39,7 +39,9 @@ jobs:
       - uses: changesets/action@v1
         id: changesets
         with:
-          version: npx changeset version && node ./scripts/sync-version.mjs
+          # Single command: the action whitespace-splits this input and spawns
+          # it as args (no shell), so chaining belongs in the package script.
+          version: npm run changeset:version
           publish: node ./scripts/release.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
