@@ -14,6 +14,6 @@ export interface Question {
   state: string;
   /** The question to answer */
   instructions: string;
-  /** The options for the answer. Keys are option names and values are descriptions of the option. i.e. `{ apple: 'Keeps firm on the counter for a week or more, tastes good on its own', banana: 'Cheap and tasty, but ripens to brown in 2-3 days' }` */
+  /** The options for the answer. Keys are option names and values are descriptions of the option. i.e. `{ walk: 'Go for a walk', movie: 'Watch a movie' }` */
   criteria: Record<string, string>;
 }

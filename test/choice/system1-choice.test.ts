@@ -12,21 +12,20 @@ vi.mock('openai', () => ({
   },
 }));
 
-// Running example: "one fruit that stays fresh on the counter for a week".
-// The descriptions carry the trade-offs (apple wins, strawberry molds fastest);
-// options map to letters A..D.
+// Running example: "It is raining and I am at home. I'm bored." — choose a plan
+// for right now (walking or a movie fit a rainy day at home, the beach does not);
+// options map to letters A..C.
 const question = () => ({
   apiBaseUrl: 'https://example.com/v1',
   apiKey: 'key',
   model: 'model',
   criteria: {
-    apple: 'Keeps firm on the counter for a week or more, tastes good on its own',
-    banana: 'Cheap and tasty, but ripens to brown in 2-3 days on the counter',
-    lemon: 'Lasts a long time, no complaint, but too sour to snack fresh',
-    strawberry: 'Delicious, but moldy within a couple of days',
+    walk: 'Go for a walk',
+    movie: 'Watch a movie',
+    beach: 'Go to the beach',
   },
-  state: 'I want to buy one fruit that stays fresh on the counter for a whole week.',
-  instructions: 'Which fruit should I buy?',
+  state: "It is raining and I am at home. I'm bored.",
+  instructions: 'Give me a good plan to do now',
 });
 
 const logprobToken = (token: string, logprob: number) => ({ token, logprob });
@@ -79,7 +78,7 @@ describe('system1Choice', () => {
     expect(params.chat_template_kwargs).toEqual({ enable_thinking: false });
     // Prompt includes the lettered options and the single-letter instruction.
     expect((params.messages as { content: string }[])[0].content).toContain(
-      'A: apple — Keeps firm on the counter for a week or more',
+      'A: walk — Go for a walk',
     );
     expect((params.messages as { content: string }[])[0].content).toContain('exactly one letter');
   });
@@ -95,9 +94,9 @@ describe('system1Choice', () => {
     );
     const answer = await system1Choice(question());
     // 0.30000000000000004-style float noise: assert with toBeCloseTo
-    expect(answer.probabilities.apple).toBeCloseTo(0.3, 10);
-    expect(answer.probabilities.banana).toBeCloseTo(0.7, 10);
-    expect(answer.choice).toBe('banana');
+    expect(answer.probabilities.walk).toBeCloseTo(0.3, 10);
+    expect(answer.probabilities.movie).toBeCloseTo(0.7, 10);
+    expect(answer.choice).toBe('movie');
   });
 
   it('normalizes to 1 when letters only account for part of the mass; tie keeps first option', async () => {
@@ -110,9 +109,9 @@ describe('system1Choice', () => {
       ]),
     );
     const answer = await system1Choice(question());
-    expect(answer.probabilities.apple).toBeCloseTo(0.5, 10);
-    expect(answer.probabilities.banana).toBeCloseTo(0.5, 10);
-    expect(answer.choice).toBe('apple'); // tie → argmax keeps the first
+    expect(answer.probabilities.walk).toBeCloseTo(0.5, 10);
+    expect(answer.probabilities.movie).toBeCloseTo(0.5, 10);
+    expect(answer.choice).toBe('walk'); // tie → argmax keeps the first
   });
 
   it('falls back to uniform when no letter appears in the top logprobs', async () => {
@@ -121,33 +120,26 @@ describe('system1Choice', () => {
     );
     const answer = await system1Choice(question());
     // No candidate letter appears, so z === 0 → explicit uniform fallback in the code.
-    expect(answer.probabilities).toEqual({
-      apple: 0.25,
-      banana: 0.25,
-      lemon: 0.25,
-      strawberry: 0.25,
-    });
+    // With 3 options the uniform fallback is exactly 1/3 per option (shared double).
+    expect(answer.probabilities).toEqual({ walk: 1 / 3, movie: 1 / 3, beach: 1 / 3 });
     expect(answer.confidence).toBeCloseTo(0); // perfectly flat → no confidence
-    expect(answer.choice).toBe('apple');
+    expect(answer.choice).toBe('walk');
   });
 
   it('matches confidence to the normalized entropy of the returned distribution', async () => {
     createMock.mockResolvedValueOnce(
       response([
         logprobToken(' A', Math.log(0.6)),
-        logprobToken(' B', Math.log(0.2)),
-        logprobToken(' C', Math.log(0.15)),
-        logprobToken(' D', Math.log(0.05)),
+        logprobToken(' B', Math.log(0.3)),
+        logprobToken(' C', Math.log(0.1)),
       ]),
     );
     const answer = await system1Choice(question());
-    // 0.6/0.2/0.15/0.05 sums to 1, so normalization is a no-op; confidence = 1 - H/ln(4).
+    // 0.6/0.3/0.1 sums to 1, so normalization is a no-op; confidence = 1 - H/ln(3).
     const conf =
-      1 +
-      (0.6 * Math.log(0.6) + 0.2 * Math.log(0.2) + 0.15 * Math.log(0.15) + 0.05 * Math.log(0.05)) /
-        Math.log(4);
+      1 + (0.6 * Math.log(0.6) + 0.3 * Math.log(0.3) + 0.1 * Math.log(0.1)) / Math.log(3);
     expect(answer.confidence).toBeCloseTo(conf, 5);
-    expect(answer.choice).toBe('apple');
+    expect(answer.choice).toBe('walk');
   });
 
   // The argmax reduce can never produce an out-of-range index while `names` comes
@@ -171,7 +163,7 @@ describe('system1Choice', () => {
     spy.mockImplementation(impl as unknown as typeof Array.prototype.reduce);
     try {
       await expect(system1Choice(question())).rejects.toThrow(
-        'internal error: winning option not found at index 11', // 4 options → 4 + 7
+        'internal error: winning option not found at index 10', // 3 options → 3 + 7
       );
     } finally {
       spy.mockRestore();
@@ -192,19 +184,19 @@ describe('system1Choice', () => {
       // entries.map receivers hold [name, description] pairs → run natively.
       if (Array.isArray(this[0])) return Reflect.apply(nativeMap, this, [cb, ...args]);
       // names.map → the hatch. null coerces to 0 in sums, undefined would not.
-      return [null, 0.4, 0.4, 0.2];
+      return [null, 0.6, 0.4];
     };
     const spy = vi.spyOn(Array.prototype, 'map');
     spy.mockImplementation(impl as unknown as typeof Array.prototype.map);
     try {
       const answer = await system1Choice(question());
       expect(createMock).toHaveBeenCalledOnce();
-      // z = null + 0.4 + 0.4 + 0.2 = 1 exactly, so normalization is a no-op;
-      // the null slot surfaces as apple: 0 instead of NaN-poisoning the run.
-      expect(answer.probabilities).toEqual({ apple: 0, banana: 0.4, lemon: 0.4, strawberry: 0.2 });
-      // Argmax: b stays at the null slot until banana's 0.4 beats `probs[b] ?? 0`.
-      expect(answer.choice).toBe('banana');
-      const conf = 1 + (0.4 * Math.log(0.4) * 2 + 0.2 * Math.log(0.2)) / Math.log(4);
+      // z = null + 0.6 + 0.4 = 1 exactly, so normalization is a no-op;
+      // the null slot surfaces as walk: 0 instead of NaN-poisoning the run.
+      expect(answer.probabilities).toEqual({ walk: 0, movie: 0.6, beach: 0.4 });
+      // Argmax: b starts at the null slot until movie's 0.6 beats `probs[b] ?? 0`.
+      expect(answer.choice).toBe('movie');
+      const conf = 1 + (0.6 * Math.log(0.6) + 0.4 * Math.log(0.4)) / Math.log(3);
       expect(answer.confidence).toBeCloseTo(conf, 10);
     } finally {
       spy.mockRestore();

@@ -39,13 +39,12 @@ const answer = await choice({
   apiBaseUrl: 'http://localhost:8000/v1', // your API url. i.e. your llama.cpp server
   apiKey: 'not-needed', // as required or not by your provider
   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
-  state: 'I want to buy one fruit that stays fresh on the counter for a whole week.',
-  instructions: 'Which fruit should I buy?',
+  state: "It is raining and I am at home. I'm bored.",
+  instructions: 'Give me a good plan to do now',
   criteria: {
-    apple: 'Keeps firm on the counter for a week or more, tastes good on its own',
-    banana: 'Cheap and tasty, but ripens to brown in 2-3 days on the counter',
-    lemon: 'Lasts a long time, no complaint, but too sour to snack fresh',
-    strawberry: 'Delicious, but moldy within a couple of days',
+    walk: 'Go for a walk',
+    movie: 'Watch a movie',
+    beach: 'Go to the beach',
   },
 });
 
@@ -56,9 +55,9 @@ console.log(answer);
 
 ```typescript
 {
-  choice: 'apple'; // option name with the highest probability
-  probabilities: { apple: 0.999, banana: 0.001, lemon: 0.0007, strawberry: 0.00002 }; // sums to 1
-  confidence: 0.994; // 0..1 — flat distribution → low, single peak → high
+  choice: 'movie'; // option name with the highest probability
+  probabilities: { movie: 0.999, walk: 0.0009, beach: 0.0001 }; // sums to 1
+  confidence: 0.992; // 0..1 — flat distribution → low, single peak → high
 }
 ```
 
