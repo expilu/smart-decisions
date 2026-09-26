@@ -1,6 +1,6 @@
 {
   "name": "smart-decisions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A TypeScript library that returns choices from System 1 (logit-based) or System 2 (LLM structured output) intelligence.",
   "type": "module",
   "scripts": {
