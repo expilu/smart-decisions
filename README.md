@@ -18,9 +18,9 @@ The library works with any LLM you might already be using, not requiring a dedic
 
 > ⚠️ **Work in progress.**
 > Early stage of development.
-> 
+>
 > Only System 1 is implemented today; System 2 is coming.
-> 
+>
 > The API is not final and the complete intended scope of the library is not yet
 > fulfilled — expect breaking changes before 1.0.
 
@@ -72,14 +72,14 @@ Notes:
 ## Requirements
 
 - An **OpenAI-compatible v1 API** that supports **`logprobs` / `top_logprobs`** in
-  chat completions. 
+  chat completions.
 
 > ⚠️ **Work in progress.**
 > Only [llama.cpp](https://github.com/ggml-org/llama.cpp) has been
-  tested for now.
-> 
+> tested for now.
+>
 > Other OpenAI-compatible servers (vLLM, LM Studio, Ollama, …)
-  should keep working as long as they return logprobs, but are unverified yet.
+> should keep working as long as they return logprobs, but are unverified yet.
 
 ## Use case
 
@@ -100,7 +100,7 @@ The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_pro
 
 ## Performance and cost
 
-System 1 answers are fulfilled with  **one single forward pass generating exactly one token**, so
+System 1 answers are fulfilled with **one single forward pass generating exactly one token**, so
 each decision costs next to nothing — whether you pay in money (a hosted API bills
 per token) or in computation (your own server does one quick pass instead of a long
 reasoning chain).
@@ -157,7 +157,6 @@ Planned
 Perhaps
 
 - [ ] Option for System 1 using dedicated decision models once the ecosystem (API standards, model behaviours,...) is more stable
-
 
 ## License
 
