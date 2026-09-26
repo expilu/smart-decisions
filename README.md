@@ -63,7 +63,7 @@ console.log(answer);
 
 Notes:
 
-- `mode` defaults to `'system1'`; passing `'system1'` currently throws
+- `mode` defaults to `'system1'`; passing `'system2'` currently throws
   (`Not implemented yet`).
 - `confidence` is derived from the distribution shape. See
   [under the hood](#how-it-works-under-the-hood) for the exact formula.
