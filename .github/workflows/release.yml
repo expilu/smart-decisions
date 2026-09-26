@@ -4,9 +4,10 @@ name: Release
 #  - pending changesets on main -> opens/updates the "Version Packages" PR
 #    (bumps package.json, rewrites CHANGELOG.md, syncs src/version.ts)
 #  - no pending changesets (a Version Packages PR was just merged)
-#    -> builds, publishes to npm with provenance (OIDC trusted publishing,
-#    no stored token), tags vX.Y.Z, creates the GitHub release from the
-#    CHANGELOG.md section.
+#    -> node ./scripts/release.mjs: builds, publishes to npm with provenance
+#    (OIDC trusted publishing, no stored token), tags vX.Y.Z and creates the
+#    GitHub release from the CHANGELOG.md section — idempotently, so retries
+#    and stranded announcements heal on the next run.
 on:
   push:
     branches: [main]
@@ -37,17 +38,10 @@ jobs:
       - run: npm ci
 
       - uses: changesets/action@v1
-        id: changesets
         with:
           # Single command: the action whitespace-splits this input and spawns
           # it as args (no shell), so chaining belongs in the package script.
           version: npm run changeset:version
           publish: node ./scripts/release.mjs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag and create GitHub release
-        if: steps.changesets.outputs.published == 'true'
-        run: node ./scripts/github-release.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
