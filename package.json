@@ -7,6 +7,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "changeset": "changeset",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc",
     "test": "vitest run",
@@ -45,6 +46,8 @@
     "dist"
   ],
   "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
     "@types/node": "^22",
     "@vitest/coverage-v8": "^5.0.2",
     "eslint": "^10.11.0",
