@@ -56,8 +56,8 @@ console.log(answer);
 ```typescript
 {
   choice: 'movie'; // option name with the highest probability
-  probabilities: { movie: 0.999, walk: 0.0009, beach: 0.0001 }; // sums to 1
-  confidence: 0.992; // 0..1 — flat distribution → low, single peak → high
+  probabilities: { walk: 0.00081, movie: 0.99913, beach: 0.00006 }; // sums to 1
+  confidence: 0.9935; // 0..1 — flat distribution → low, single peak → high
 }
 ```
 
