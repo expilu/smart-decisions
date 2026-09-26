@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { ChoiceAnswer } from '../../src/choice/choice-answer.js';
+import type { ChoiceAnswer } from '../../src/types/choice-answer.js';
 
-// src/choice/choice-answer.ts contains only types, so these are compile-time
+// src/types/choice-answer.ts contains only types, so these are compile-time
 // assertions: vitest type-checks them with expectTypeOf and the tests pass
 // trivially at runtime.
 describe('choiceAnswer', () => {

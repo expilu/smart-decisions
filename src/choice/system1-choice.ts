@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
-import type { ChoiceAnswer } from './choice-answer.js';
+import type { ChoiceAnswer } from '../types/choice-answer.js';
 import type { Question } from '../types/question.js';
 
 // The letters of the alphabet.

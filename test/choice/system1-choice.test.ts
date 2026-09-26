@@ -59,6 +59,12 @@ describe('system1Choice', () => {
     await expect(system1Choice(question())).rejects.toThrow('system1 requires logprobs');
   });
 
+  it('throws when the provider response has an empty top logprobs list', async () => {
+    createMock.mockResolvedValueOnce(response([]));
+    await expect(system1Choice(question())).rejects.toThrow('system1 requires logprobs');
+    expect(createMock).toHaveBeenCalledOnce();
+  });
+
   it('makes a single-token greedy logprobs request', async () => {
     createMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
     await system1Choice(question());
@@ -142,5 +148,66 @@ describe('system1Choice', () => {
         Math.log(4);
     expect(answer.confidence).toBeCloseTo(conf, 5);
     expect(answer.choice).toBe('apple');
+  });
+
+  // The argmax reduce can never produce an out-of-range index while `names` comes
+  // from Object.entries (a dense array), so the defensive loud failure is unreachable
+  // through valid data. Break the invariant from the test side instead: every reduce
+  // still runs natively (so normal branches stay exercised), but the argmax — the
+  // only reduce whose callback declares (accumulator, value, index) — gets its
+  // result overridden with an index beyond `names`.
+  it('throws the internal invariant error if the argmax returns an out-of-range index', async () => {
+    createMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
+    const native = Array.prototype.reduce;
+    const impl = function (
+      this: unknown[],
+      cb: (acc: unknown, cur: unknown, idx: number) => unknown,
+      init: unknown,
+    ) {
+      const normal = Reflect.apply(native, this, [cb, init]);
+      return cb.length === 3 ? this.length + 7 : normal;
+    };
+    const spy = vi.spyOn(Array.prototype, 'reduce');
+    spy.mockImplementation(impl as unknown as typeof Array.prototype.reduce);
+    try {
+      await expect(system1Choice(question())).rejects.toThrow(
+        'internal error: winning option not found at index 11', // 4 options → 4 + 7
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  // The `?? 0` guards in system1Choice treat nullish probability slots as 0 instead
+  // of letting NaN propagate. Such slots can only exist if the invariant
+  // "names.map() returns numbers" is broken, so break it from the test side: the
+  // map call that builds `probs` (its receiver is an array of strings — the other
+  // two map calls receive [name, description] pairs) is hijacked to return an
+  // array whose first slot is null. null coerces to 0 in the sum, so execution
+  // stays on the normal path while both `?? 0` fallbacks fire.
+  it('treats nullish probability slots as 0 instead of letting NaN propagate', async () => {
+    createMock.mockResolvedValueOnce(response([logprobToken('B', Math.log(0.4))]));
+    const nativeMap = Array.prototype.map;
+    const impl = function (this: unknown[], cb: unknown, ...args: unknown[]) {
+      // entries.map receivers hold [name, description] pairs → run natively.
+      if (Array.isArray(this[0])) return Reflect.apply(nativeMap, this, [cb, ...args]);
+      // names.map → the hatch. null coerces to 0 in sums, undefined would not.
+      return [null, 0.4, 0.4, 0.2];
+    };
+    const spy = vi.spyOn(Array.prototype, 'map');
+    spy.mockImplementation(impl as unknown as typeof Array.prototype.map);
+    try {
+      const answer = await system1Choice(question());
+      expect(createMock).toHaveBeenCalledOnce();
+      // z = null + 0.4 + 0.4 + 0.2 = 1 exactly, so normalization is a no-op;
+      // the null slot surfaces as apple: 0 instead of NaN-poisoning the run.
+      expect(answer.probabilities).toEqual({ apple: 0, banana: 0.4, lemon: 0.4, strawberry: 0.2 });
+      // Argmax: b stays at the null slot until banana's 0.4 beats `probs[b] ?? 0`.
+      expect(answer.choice).toBe('banana');
+      const conf = 1 + (0.4 * Math.log(0.4) * 2 + 0.2 * Math.log(0.2)) / Math.log(4);
+      expect(answer.confidence).toBeCloseTo(conf, 10);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
