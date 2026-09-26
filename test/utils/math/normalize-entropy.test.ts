@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeEntropy } from '../src/utils/math/normalize-entropy.js';
+import { normalizeEntropy } from '../../../src/utils/math/normalize-entropy.js';
 
 describe('normalizeEntropy', () => {
   it('returns 0 for a uniform (flat) distribution', () => {

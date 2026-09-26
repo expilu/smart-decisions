@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
-import type { ChoiceAnswer, Question } from '../types.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
+import type { ChoiceAnswer } from './choice-answer.js';
+import type { Question } from '../types/question.js';
 
 // The letters of the alphabet.
 // These will be used to map choices criterias to one letter so we can later check those token logits.

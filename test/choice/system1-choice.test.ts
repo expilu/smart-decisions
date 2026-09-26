@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { system1Choice } from '../src/choice/system1-choice.js';
+import { system1Choice } from '../../src/choice/system1-choice.js';
 
 // Mock the OpenAI client at module level: system1Choice is its direct user.
 // All mocked responses below return logprobs-shaped bodies, so tests only need

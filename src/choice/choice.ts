@@ -1,4 +1,5 @@
-import type { ChoiceAnswer, Question } from '../types.js';
+import type { Question } from '../types/question.js';
+import type { ChoiceAnswer } from './choice-answer.js';
 import { system1Choice } from './system1-choice.js';
 
 /**
