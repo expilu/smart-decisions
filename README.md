@@ -132,7 +132,7 @@ The model is asked a single question and reads the logprobs of the answer's firs
    - `temperature: 0` (greedy: always the most likely letter)
    - `top_logprobs: 50` (wide enough window that every declared letter token, and its token variants, lands in the report)
    - thinking-reasoning disabled (avoid wasting this one token on a think tag)
-3. What we read is not the answer text itself (it is thrown away): the winning
+3. What we read is not the answer token itself (it is thrown away): the winning
    option is whichever letter token (linked to an option) carried the highest generated probability. The
    report declares all candidate letters; the highest probability among them wins.
 4. Letter probabilities are normalized into the `probabilities` map (sums to 1).
