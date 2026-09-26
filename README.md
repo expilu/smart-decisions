@@ -37,7 +37,7 @@ import { choice } from 'smart-decisions';
 
 const answer = await choice({
   apiBaseUrl: 'http://localhost:8000/v1', // your API url. i.e. your llama.cpp server
-  apiKey: 'not-needed', // as required or not by your provider
+  apiKey: 'a-super-secret-api-key', // as required or not by your provider
   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
   state: "It is raining and I am at home. I'm bored.",
   instructions: 'Give me a good plan to do now',
