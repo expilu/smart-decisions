@@ -8,6 +8,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "changeset": "changeset",
+    "changeset:version": "changeset version && node ./scripts/sync-version.mjs",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc",
     "test": "vitest run",
