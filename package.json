@@ -26,7 +26,7 @@
     "typescript"
   ],
   "author": "Daniel López Lacalle",
-  "license": "LicenseRef-MIT-NON-AI",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/expilu/smart-decisions/issues"
   },

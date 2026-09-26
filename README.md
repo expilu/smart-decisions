@@ -159,4 +159,4 @@ Perhaps
 
 ## License
 
-[MIT NON-AI License](./LICENSE) — free to use, not to redistribute on model training data.
+[MIT](./LICENSE)
