@@ -7,11 +7,12 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "example": "node --env-file=.env --import tsx examples/basic.ts",
-    "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run build && npm test"
+    "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run typecheck && npm run build && npm test"
   },
   "repository": {
     "type": "git",
@@ -53,8 +54,5 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
-  },
-  "dependencies": {
-    "openai": "^7.23.0"
   }
 }

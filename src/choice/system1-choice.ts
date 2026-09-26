@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { generateText } from '../utils/llms/generate-text.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
 import type { ChoiceAnswer } from '../types/choice-answer.js';
 import type { Question } from '../types/question.js';
@@ -22,6 +22,18 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
  *          distribution over every option (sums to 1), and a 0..1 confidence
  *          based on the distribution's entropy (flat → low, single peak → high).
  * @throws If there are fewer than 2 or more than 26 options (one per letter).
+ * @example
+ * ```ts
+ * const answer = await system1Choice({
+ *   apiBaseUrl: 'http://localhost:8000/v1',
+ *   apiKey: process.env.API_KEY!,
+ *   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+ *   state: "It is raining and I am at home. I'm bored.",
+ *   instructions: 'Give me a good plan to do now',
+ *   criteria: { walk: 'Go for a walk', movie: 'Watch a movie' },
+ * });
+ * console.log(answer.choice); // 'movie'
+ * ```
  */
 export async function system1Choice(question: Question): Promise<ChoiceAnswer> {
   const entries = Object.entries(question.criteria);
@@ -46,23 +58,22 @@ export async function system1Choice(question: Question): Promise<ChoiceAnswer> {
     `Answer with exactly one letter (${LETTERS.slice(0, names.length).join(', ')}). ` +
     `Reply with that single letter and nothing else.`;
 
-  const client = new OpenAI({
-    baseURL: question.apiBaseUrl,
-    apiKey: question.apiKey,
-  });
-
   // The whole decision is one forward pass generating one token. Each param below
   // nudges the model towards emitting just the chosen option's letter.
   // TODO: probably better to move instructions to system prompt for KV cache reuse
-  const res = await client.chat.completions.create({
-    model: question.model,
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 1, // the answer is a single letter
-    temperature: 0, // greedy: always the most likely letter
-    logprobs: true,
-    top_logprobs: 50, // llama.cpp server max; margin so every declared letter (and its token variants) lands in the report
-    chat_template_kwargs: { enable_thinking: false },
-  } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming);
+  const res = await generateText(
+    { apiBaseUrl: question.apiBaseUrl, apiKey: question.apiKey },
+    {
+      model: question.model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1, // the answer is a single letter
+      temperature: 0, // greedy: always the most likely letter
+      logprobs: true,
+      top_logprobs: 50, // llama.cpp server max; margin so every declared letter (and its token variants) lands in the report
+      chat_template_kwargs: { enable_thinking: false },
+    },
+    { maxRetries: question.maxRetries, timeoutMs: question.timeoutMs },
+  );
 
   // The first generated token is the answer letter; its candidate tokens carry
   // the logprobs we turn into the option distribution. Missing logprobs means we
