@@ -9,6 +9,7 @@
     "format:check": "prettier --check .",
     "build": "tsc",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "example": "tsx examples/basic.ts",
     "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run build && npm test"
   },
@@ -44,6 +45,7 @@
   ],
   "devDependencies": {
     "@types/node": "^22",
+    "@vitest/coverage-v8": "^5.0.2",
     "eslint": "^10.11.0",
     "jiti": "^2.7.0",
     "prettier": "^3.9.9",
