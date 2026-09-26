@@ -21,9 +21,18 @@
     "url": "git+https://github.com/expilu/smart-decisions.git"
   },
   "keywords": [
-    "decisions",
-    "choices",
+    "agentic-ai",
+    "classification",
+    "classifier",
+    "confidence",
+    "decision-making",
     "llm",
+    "llm-routing",
+    "logprobs",
+    "openai-api",
+    "probabilities",
+    "routing",
+    "semantic-routing",
     "system1",
     "system2",
     "typescript"
