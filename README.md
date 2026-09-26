@@ -1,39 +1,26 @@
 # smart-decisions
 
-A TypeScript library that answers a decision question with a **probability
-distribution over every option**, using **System 1 (fast, instinctive)** intelligence
-— or **System 2 (slow, deliberate, LLM structured
-output)** as it grows.
+A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM.
 
-Think of it as a smart `if`: where `if` can only branch on a boolean expression, a
-`choice()` branches on _meaning_. You describe a situation and your options, the
-library turns it into a decision, and hands you back the per-option probabilities —
-not just which branch to take, but how sure it is. Software can use that to act
-autonomously (route a request, triage an alert, pick a reply) and to _know when not
-to act_ (low confidence → fall back to System 2, a human, or another code path).
+To make the decision, you can choose between **[System 1](#system-1-vs-system-2) (fast, instinctive, milliseconds)** or **[System 2](#system-1-vs-system-2) (slow, deliberate, several seconds)** intelligence.
 
-## Use case
+Think of it as a smart `if`.
 
-It works with any LLM you already have running — no extra model to deploy.
+Where `if` can _only_ branch on a boolean expression, a `choice()` branches on _**meaning**_.
 
-A real-world use case: you self-host a general-purpose model with llama.cpp
-and don't have VRAM left to also serve a specialized
-decision-making model. Since this tool only needs logprobs from the model you
-already serve, you reuse it for typed decisions at zero extra footprint.
+You describe a situation (aka _**state**_), the _**options**_ to choose from and _**instructions**_, the library turns that into a _**decision**_, and hands you back the _**per-option probabilities**_.
 
-## System 1 vs System 2
+You are also handed the _**confidence**_: how sure it is about the decision.
 
-The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_process_theory)
-(Daniel Kahneman's _Thinking, Fast and Slow_):
+Software can then use those _**probabilities**_ and _**confidence**_ to act autonomously (route a request, triage an alert, pick a reply) and to _know when not to act_ (low confidence → fall back to System 2, a human, or another code path).
 
-- **System 1** is fast, automatic and instinctive. The immediate answer that comes to
-  mind. In this library: one forward pass, one generated token, no reasoning.
-  Much cheaper in inference.
-- **System 2** is slow, effortful and deliberate — reasoning applied to reach a
-  considered verdict. In this library: the LLM reasons and produces a full structured
-  response. Slower and more costly.
+The library works with any LLM you might already be using, not requiring a dedicated decisions model.
 
-> ⚠️ **Work in progress.** Only System 1 is implemented today; System 2 is coming.
+> ⚠️ **Work in progress.**
+> Early stage of development.
+> 
+> Only System 1 is implemented today; System 2 is coming.
+> 
 > The API is not final and the complete intended scope of the library is not yet
 > fulfilled — expect breaking changes before 1.0.
 
@@ -42,14 +29,6 @@ The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_pro
 ```bash
 npm install smart-decisions
 ```
-
-## Requirements
-
-- **Node >= 22**
-- An **OpenAI-compatible v1 API** that supports **`logprobs` / `top_logprobs`** in
-  chat completions. Only [llama.cpp](https://github.com/ggml-org/llama.cpp) has been
-  tested for now — other OpenAI-compatible servers (vLLM, LM Studio, Ollama, …)
-  should keep working as long as they return logprobs, but are unverified yet.
 
 ## Usage
 
@@ -87,18 +66,47 @@ Notes:
 
 - `mode` defaults to `'system1'`; passing `mode: 'system2'` currently throws
   (`Not implemented yet`).
-- Supports **2 to 26 options** (see [under the hood](#how-it-works-under-the-hood))
+- Supports **2 to 26 options** (see [under the hood](#how-it-works-under-the-hood)).
 - `confidence` is derived from the distribution shape — see
   [under the hood](#how-it-works-under-the-hood) for the exact formula.
 
-## Performance
+## Requirements
 
-System 1 answers with **one single forward pass generating exactly one token**, so
+- An **OpenAI-compatible v1 API** that supports **`logprobs` / `top_logprobs`** in
+  chat completions. 
+
+> ⚠️ **Work in progress.**
+> Only [llama.cpp](https://github.com/ggml-org/llama.cpp) has been
+  tested for now.
+> 
+> Other OpenAI-compatible servers (vLLM, LM Studio, Ollama, …)
+  should keep working as long as they return logprobs, but are unverified yet.
+
+## Use case
+
+It works with any LLM you already have running. No extra model to deploy.
+
+A **real use case**: you self-host a general-purpose LLM model with llama.cpp and don't have VRAM or RAM left to also serve a specialized decision-making model. Since this tool only needs logprobs from themodel you already serve, you reuse it for typed decisions at zero extra footprint.
+
+## System 1 vs System 2
+
+The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_process_theory):
+
+- **System 1** is fast, automatic and instinctive. The immediate answer that comes to
+  mind. In this library: one single forward pass, one generated token, no reasoning.
+  Much cheaper in inference. Usually done in milliseconds range.
+- **System 2** is slow, effortful and deliberate — reasoning applied to reach a
+  considered verdict. In this library: the LLM reasons and produces a full structured
+  response. Slower and more costly. Hopefully more accurate. Usually done in several seconds.
+
+## Performance and cost
+
+System 1 answers are fulfilled with  **one single forward pass generating exactly one token**, so
 each decision costs next to nothing — whether you pay in money (a hosted API bills
 per token) or in computation (your own server does one quick pass instead of a long
 reasoning chain).
 
-On modest hardware it is genuinely fast. Measured locally with
+On modest hardware it is genuinely fast. Measured locally with my (aging) testing server
 [llama.cpp](https://github.com/ggml-org/llama.cpp) serving
 **Qwen3.5-4B Q4_K_M** on an **RTX 2080** (a 2018 card):
 
@@ -107,43 +115,50 @@ On modest hardware it is genuinely fast. Measured locally with
 That includes the whole round trip on the small machine; the library itself adds one
 forward pass and one token of generated text to the request (details in
 [under the hood](#how-it-works-under-the-hood)). Every decision needs
-re-prefill of state + criteria, so latency scales with prompt size — long criteria
-lists (up to 26 options) will be slower on the same hardware.
+re-prefill of state + criteria, so latency scales with prompt size. Long criteria
+lists will be slower on the same hardware.
 
 ## How it works under the hood
 
-The key trick: an LLM always computes a **probability distribution over all possible
-tokens** before it answers — we just need the right request to _receive_ that
-distribution. That's only guaranteed with an actual generation, so we ask for one with just one token, but **the generated token itself is irrelevant and gets discarded**. What matters is the letter logits that make up the probability distribution over our options.
+### System 1
 
-System 1 asks the model a single question and reads the logprobs of the answer's
-first (and only) generated token:
+The key trick: an LLM always computes a **probability distribution over all possible tokens** before it answers. We just need the right request to _receive_ that distribution.
 
-1. Each option (`criteria` key) is assigned a letter of the alphabet (2–26 options,
-   one per letter) and rendered in the prompt as `A: name — description`.
-2. The request is tuned to make the answer itself be exactly one letter —
-   deterministic and cheap:
-   - `max_tokens: 1` (the answer is a single letter)
+That's only guaranteed with an actual generation, so we ask for one with a limit of just one token. **The generated token itself is irrelevant and gets discarded**. What matters is the letter logits that make up the probability distribution over our options.
+
+The model is asked a single question and reads the logprobs of the answer's first (and only) generated token:
+
+1. Each option (`criteria` key) is assigned a letter of the alphabet and rendered in the prompt as `A: key — description`.
+2. The request is tuned to make the answer itself be exactly one letter (deterministic and cheap):
+   - `max_tokens: 1` (the answer is a single token, one single pass of the model)
    - `temperature: 0` (greedy: always the most likely letter)
-   - `top_logprobs: 50` (wide enough window that every declared letter — and its token variants — lands in the report)
+   - `top_logprobs: 50` (wide enough window that every declared letter token, and its token variants, lands in the report)
    - thinking-reasoning disabled (avoid wasting this one token on a think tag)
 3. What we read is not the answer text itself (it is thrown away): the winning
-   option is whichever letter carried the highest generated probability. The
-   report declares all candidate letters; each letter appears as token variants
-   (case, leading space, BOS…) — the highest probability among them wins.
-4. Letter probabilities are normalized into the `probabilities` map (sums to 1);
-   the option letters never showing up fall back to a uniform distribution
-   (no signal instead of a fake confident answer).
-5. `confidence` summarizes how decisive the answer is: if the probability is spread
-   evenly across the options (the model has no clear instinct), it stays near 0;
-   the more the probability piles up on one option, the closer it gets to 1.
+   option is whichever letter token (linked to an option) carried the highest generated probability. The
+   report declares all candidate letters; the highest probability among them wins.
+4. Letter probabilities are normalized into the `probabilities` map (sums to 1).
+5. `confidence` summarizes how decisive the answer is: if the probability is spread evenly across the options (the model has no clear instinct), it stays near 0; the more the probability piles up on one option, the closer it gets to 1.
+
+### System 2
+
+> ⚠️ **Work in progress.**
+> Not yet implemented, but will just use an LLM with structured outputs and the choice to reason or not.
 
 ## Status
 
+Planned
+
 - [x] System 1 (logit-based)
 - [ ] System 2 (LLM structured output, with reasoning / non-reasoning toggle)
-- [ ] OpenAI / Gemini / Openrouter/ vLLM / LM Studio / Ollama APIs verification (found working only with llama.cpp)
+- [ ] Test and adapt to more inference providers APIs and self hosted engines
+- [ ] Benchmarking and model sanity check tools
 - [ ] Final API
+
+Perhaps
+
+- [ ] Option for System 1 using dedicated decision models once the ecosystem (API standards, model behaviours,...) is more stable
+
 
 ## License
 
