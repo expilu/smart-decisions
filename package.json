@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "example": "node --env-file=.env --import tsx examples/basic.ts",
+    "example:routing": "node --env-file=.env --import tsx examples/ticket-routing.ts",
     "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run typecheck && npm run build && npm test"
   },
   "repository": {

@@ -1,5 +1,10 @@
 # smart-decisions
 
+[![npm](https://img.shields.io/npm/v/smart-decisions.svg)](https://www.npmjs.com/package/smart-decisions)
+[![CI](https://github.com/expilu/smart-decisions/actions/workflows/ci.yml/badge.svg)](https://github.com/expilu/smart-decisions/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![types](https://img.shields.io/npm/types/smart-decisions)](https://www.npmjs.com/package/smart-decisions)
+
 A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM.
 
 To make the decision, you can choose between **[System 1](#system-1-vs-system-2) (fast, instinctive, milliseconds)** or **[System 2](#system-1-vs-system-2) (slow, deliberate, several seconds)** intelligence.
@@ -67,6 +72,40 @@ Notes:
   (`Not implemented yet`).
 - `confidence` is derived from the distribution shape. See
   [under the hood](#how-it-works-under-the-hood) for the exact formula.
+
+## Examples
+
+### Route a support ticket to the right department
+
+Classify incoming tickets. When the distribution is too flat to trust, the returned `confidence` tells you so you can escalate to a human:
+
+```typescript
+import { choice } from 'smart-decisions';
+
+const criteria = {
+  billing: 'Customer asks about invoices, payments, refunds or charges',
+  technical: 'Customer reports a bug, error or product malfunction',
+  sales: 'Customer asks about pricing, plans or upgrading',
+  account: 'Customer needs help with login or account access',
+};
+
+const answer = await choice({
+  apiBaseUrl: 'http://localhost:8000/v1',
+  apiKey: 'a-super-secret-api-key',
+  model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+  mode: 'system1',
+  state:
+    'Customer support ticket:\n"Hi, I was charged twice this month. Can you refund the extra payment?"',
+  instructions: 'Classify the ticket into the right department',
+  criteria,
+})!;
+
+if (answer.confidence < 0.5) {
+  return forwardToHuman(answer); // too unsure to act autonomously
+}
+
+routeTo(answer.choice); // 'billing'
+```
 
 ## Requirements
 
