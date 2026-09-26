@@ -22,7 +22,7 @@ The library works with any LLM you might already be using, not requiring a dedic
 > Only System 1 is implemented today; System 2 is coming.
 >
 > The API is not final and the complete intended scope of the library is not yet
-> fulfilled — expect breaking changes before 1.0.
+> fulfilled, expect breaking changes before 1.0.
 
 ## Install
 
