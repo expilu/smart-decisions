@@ -84,7 +84,7 @@ Notes:
 
 It works with any LLM you already have running. No extra model to deploy.
 
-A **real use case**: you self-host a general-purpose LLM model with llama.cpp and don't have VRAM or RAM left to also serve a specialized decision-making model. Since this tool only needs logprobs from themodel you already serve, you reuse it for typed decisions at zero extra footprint.
+A **real use case**: you self-host a general-purpose LLM model with llama.cpp and don't have VRAM or RAM left to also serve a specialized decision-making model. Since this tool only needs logprobs from the model you already serve, you reuse it for typed decisions at zero extra footprint.
 
 ## System 1 vs System 2
 
