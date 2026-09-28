@@ -34,4 +34,10 @@ export interface ChatCompletionRequest {
   top_logprobs?: number;
   /** Extra parameters forwarded to the model's chat template, i.e. `{ enable_thinking: false }` for llama.cpp */
   chat_template_kwargs?: Record<string, unknown>;
+  /**
+   * Engine- or model-specific fields beyond the standard keys above, i.e. merged in
+   * from `Model['extraBody']`. They ride on the body verbatim: OpenAI-compatible
+   * engines ignore unknown fields, so only keys the backend understands take effect.
+   */
+  [key: string]: unknown;
 }

@@ -40,10 +40,14 @@ npm install smart-decisions
 ```typescript
 import { choice } from 'smart-decisions';
 
-const answer = await choice({
+const model = {
   apiBaseUrl: 'http://localhost:8000/v1', // your API url. i.e. your llama.cpp server
   apiKey: 'a-super-secret-api-key', // as required or not by your provider
   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+};
+
+const answer = await choice({
+  model,
   state: "It is raining and I am at home. I'm bored.",
   instructions: 'Give me a good plan to do now',
   criteria: {
@@ -82,6 +86,12 @@ Classify incoming tickets. When the distribution is too flat to trust, the retur
 ```typescript
 import { choice } from 'smart-decisions';
 
+const model = {
+  apiBaseUrl: 'http://localhost:8000/v1',
+  apiKey: 'a-super-secret-api-key',
+  model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+};
+
 const criteria = {
   billing: 'Customer asks about invoices, payments, refunds or charges',
   technical: 'Customer reports a bug, error or product malfunction',
@@ -90,9 +100,7 @@ const criteria = {
 };
 
 const answer = await choice({
-  apiBaseUrl: 'http://localhost:8000/v1',
-  apiKey: 'a-super-secret-api-key',
-  model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+  model,
   mode: 'system1',
   state:
     'Customer support ticket:\n"Hi, I was charged twice this month. Can you refund the extra payment?"',
@@ -114,10 +122,7 @@ routeTo(answer.choice); // 'billing'
 
 > ⚠️ **Work in progress.**
 > Only [llama.cpp](https://github.com/ggml-org/llama.cpp) has been
-> tested for now.
->
-> Other OpenAI-compatible servers (vLLM, LM Studio, Ollama, …)
-> should keep working as long as they return logprobs, but are unverified yet.
+> tested for now
 
 ## Use case
 
