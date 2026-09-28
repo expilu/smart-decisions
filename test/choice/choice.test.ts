@@ -14,9 +14,11 @@ const question = (
   mode?: 'system1' | 'system2',
   criteria: Record<string, string> = { a: 'A', b: 'B' },
 ): Question => ({
-  apiBaseUrl: 'https://example.com/v1',
-  apiKey: 'key',
-  model: 'model',
+  model: {
+    apiBaseUrl: 'https://example.com/v1',
+    apiKey: 'key',
+    model: 'model',
+  },
   // Omitted when undefined: exactOptionalPropertyTypes forbids an explicit `mode: undefined`.
   ...(mode !== undefined && { mode }),
   criteria,

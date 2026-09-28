@@ -22,6 +22,7 @@ interface FetchInit {
   headers: Record<string, string>;
   body: string;
   signal: AbortSignal;
+  redirect: string;
 }
 
 beforeEach(() => {
@@ -50,6 +51,7 @@ describe('generateText', () => {
     expect(init.headers.Accept).toBe('application/json');
     expect(init.headers.Authorization).toBe('Bearer secret');
     expect(init.headers['User-Agent']).toMatch(/^smart-decisions\//);
+    expect(init.redirect).toBe('error'); // never follow redirects
     expect(JSON.parse(init.body)).toEqual({
       model: 'model',
       messages: [{ role: 'user', content: 'hi' }],
@@ -69,6 +71,106 @@ describe('generateText', () => {
     expect(String(fetchMock.mock.calls[1]![0])).toBe('https://example.com/v1/chat/completions');
   });
 
+  it('joins the endpoint path through the URL API, preserving base URL queries', async () => {
+    fetchMock.mockResolvedValueOnce(ok({ choices: [] }));
+    await generateText({ apiBaseUrl: 'https://example.com/v1?team=1', apiKey: 'k' }, request());
+
+    // String concatenation would put the path inside the query; the URL join
+    // keeps the query and appends the path where it belongs.
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      'https://example.com/v1/chat/completions?team=1',
+    );
+  });
+
+  it('rejects an invalid base URL without attempting a request', async () => {
+    await expect(generateText({ apiBaseUrl: 'not a url', apiKey: 'k' }, request())).rejects.toThrow(
+      'Invalid model.apiBaseUrl "not a url"',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('strips query strings from URLs in error messages so query-borne keys cannot leak', async () => {
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+
+    const err = (await generateText(
+      { apiBaseUrl: 'https://example.com/v1?key=secret', apiKey: 'k' },
+      request(),
+      { maxRetries: 0 },
+    ).catch((e: unknown) => e)) as Error;
+    expect(err.message).toBe(
+      'LLM request to https://example.com/v1/chat/completions failed: fetch failed',
+    );
+    expect(err.message).not.toContain('key=secret');
+  });
+
+  it('refuses response bodies over the safety cap without retrying', async () => {
+    // Declared over cap: fails before a single body byte is read.
+    fetchMock.mockResolvedValueOnce(
+      new Response('tiny', {
+        status: 200,
+        headers: { 'content-length': String(10 * 1024 * 1024 + 1) },
+      }),
+    );
+    await expect(generateText(connection(), request())).rejects.toThrow(
+      'response body exceeds the 10 MB safety cap — refusing to read it',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Undeclared (streamed) over cap: fails mid-read, also without a retry.
+    const chunks = ['x'.repeat(5 * 1024 * 1024), 'x'.repeat(5 * 1024 * 1024), 'x'.repeat(1024)];
+    let i = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (i < chunks.length) controller.enqueue(new TextEncoder().encode(chunks[i++]!));
+        else controller.close();
+      },
+    });
+    fetchMock.mockResolvedValueOnce(new Response(stream, { status: 200 }));
+    await expect(generateText(connection(), request())).rejects.toThrow(
+      'response body exceeds the 10 MB safety cap — refusing to read it',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('sanitizes non-finite maxRetries to the default, never retrying forever', async () => {
+    // NaN would make every `attempt >= maxRetries` comparison false → infinite
+    // retries against a failing server. Infinity falls back to the default too.
+    for (const maxRetries of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      // A factory, not mockResolvedValue: a Response body can only be read once,
+      // so every attempt needs a fresh Response.
+      fetchMock.mockImplementation(async () =>
+        fail(429, 'rate limited', { 'retry-after-ms': '1' }),
+      );
+      const pending = expect(generateText(connection(), request(), { maxRetries })).rejects.toThrow(
+        'LLM API returned HTTP 429: rate limited',
+      );
+      await vi.advanceTimersByTimeAsync(2); // two 1ms header-requested waits
+      await pending;
+      // Default maxRetries (2) → exactly 3 attempts, then give up.
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      fetchMock.mockReset();
+    }
+  });
+
+  it('degrades negative and fractional maxRetries to whole, non-negative attempt counts', async () => {
+    // -5 → 0 retries → a single attempt, no wait involved.
+    fetchMock.mockResolvedValue(fail(429, 'rate limited', { 'retry-after-ms': '1' }));
+    await expect(generateText(connection(), request(), { maxRetries: -5 })).rejects.toThrow(
+      'LLM API returned HTTP 429: rate limited',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1.5 → floor to 1 retry → two attempts.
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async () => fail(429, 'rate limited', { 'retry-after-ms': '1' }));
+    const pending = expect(
+      generateText(connection(), request(), { maxRetries: 1.5 }),
+    ).rejects.toThrow('LLM API returned HTTP 429: rate limited');
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('applies the default timeout and honors an explicit one, per attempt', async () => {
     fetchMock.mockResolvedValueOnce(ok({ choices: [] }));
     await generateText(connection(), request());
@@ -77,6 +179,27 @@ describe('generateText', () => {
     fetchMock.mockResolvedValueOnce(ok({ choices: [] }));
     await generateText(connection(), request(), { timeoutMs: 42 });
     expect(timeoutSpy).toHaveBeenCalledWith(42);
+  });
+
+  it('adds extra top-level request keys into the body untouched', async () => {
+    fetchMock.mockResolvedValueOnce(ok({ choices: [] }));
+
+    // Engine/model-specific fields (i.e. from Model['extraBody']) ride on the
+    // wire type's index signature; the transport must serialize them as is.
+    await generateText(connection(), {
+      ...request(),
+      reasoning_effort: 'none',
+      chat_template_kwargs: { enable_thinking: false },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, FetchInit];
+    expect(JSON.parse(init.body)).toEqual({
+      model: 'model',
+      messages: [{ role: 'user', content: 'hi' }],
+      reasoning_effort: 'none',
+      chat_template_kwargs: { enable_thinking: false },
+      stream: false,
+    });
   });
 
   it('throws immediately on a non-retryable status, without retrying', async () => {

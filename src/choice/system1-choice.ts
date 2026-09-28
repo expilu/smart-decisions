@@ -1,4 +1,5 @@
 import { generateText } from '../utils/llms/generate-text.js';
+import { applyExtraBody } from '../utils/llms/apply-extra-body.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
 import type { ChoiceAnswer } from '../types/choice-answer.js';
 import type { Question } from '../types/question.js';
@@ -17,7 +18,7 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
  * candidate letter tokens. No deliberation, no chain-of-thought, no structured
  * output — that's System 2's job.
  *
- * @param question - The decision to make: options, state, instructions and provider settings.
+ * @param question - The decision to make: options, state, instructions and the model to query.
  * @returns The winning option (highest letter probability), the probability
  *          distribution over every option (sums to 1), and a 0..1 confidence
  *          based on the distribution's entropy (flat → low, single peak → high).
@@ -25,9 +26,11 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
  * @example
  * ```ts
  * const answer = await system1Choice({
- *   apiBaseUrl: 'http://localhost:8000/v1',
- *   apiKey: process.env.API_KEY!,
- *   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+ *   model: {
+ *     apiBaseUrl: 'http://localhost:8000/v1',
+ *     apiKey: process.env.API_KEY!,
+ *     model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+ *   },
  *   state: "It is raining and I am at home. I'm bored.",
  *   instructions: 'Give me a good plan to do now',
  *   criteria: { walk: 'Go for a walk', movie: 'Watch a movie' },
@@ -62,16 +65,24 @@ export async function system1Choice(question: Question): Promise<ChoiceAnswer> {
   // nudges the model towards emitting just the chosen option's letter.
   // TODO: probably better to move instructions to system prompt for KV cache reuse
   const res = await generateText(
-    { apiBaseUrl: question.apiBaseUrl, apiKey: question.apiKey },
-    {
-      model: question.model,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1, // the answer is a single letter
-      temperature: 0, // greedy: always the most likely letter
-      logprobs: true,
-      top_logprobs: 50, // llama.cpp server max; margin so every declared letter (and its token variants) lands in the report
-      chat_template_kwargs: { enable_thinking: false },
-    },
+    { apiBaseUrl: question.model.apiBaseUrl, apiKey: question.model.apiKey },
+    applyExtraBody(
+      {
+        model: question.model.model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1, // the answer is a single letter
+        temperature: 0, // greedy: always the most likely letter
+        logprobs: true,
+        // 20 is the highest portable window: OpenAI and OpenRouter cap top_logprobs
+        // at 20, and vLLM's server default --max-logprobs is also 20. llama.cpp
+        // accepts up to 50, so 20 is safe everywhere logprobs exist. The margin is
+        // enough for realistic option counts; letters falling outside the window
+        // just contribute 0 to their option's probability.
+        top_logprobs: 20,
+        chat_template_kwargs: { enable_thinking: false },
+      },
+      question.model.extraBody,
+    ),
     { maxRetries: question.maxRetries, timeoutMs: question.timeoutMs },
   );
 
@@ -90,6 +101,12 @@ export async function system1Choice(question: Question): Promise<ChoiceAnswer> {
   // TODO: check if keeping the highest one is the best option
   const letterProbability = new Map<string, number>();
   for (const t of tops) {
+    // A non-conforming server can send malformed entries (missing or null token);
+    // skip them instead of crashing mid-read — the remaining candidates still
+    // carry the decision.
+    if (typeof t?.token !== 'string') {
+      continue;
+    }
     const letter = t.token.trim().toUpperCase();
     const p = Math.exp(t.logprob);
     if (p > (letterProbability.get(letter) ?? 0)) {

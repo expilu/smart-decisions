@@ -19,9 +19,11 @@ afterEach(() => {
 // for right now (walking or a movie fit a rainy day at home, the beach does not);
 // options map to letters A..C.
 const question = () => ({
-  apiBaseUrl: 'https://example.com/v1',
-  apiKey: 'key',
-  model: 'model',
+  model: {
+    apiBaseUrl: 'https://example.com/v1',
+    apiKey: 'key',
+    model: 'model',
+  },
   criteria: {
     walk: 'Go for a walk',
     movie: 'Watch a movie',
@@ -78,12 +80,97 @@ describe('system1Choice', () => {
     expect(params.max_tokens).toBe(1); // one forward pass, one generated token
     expect(params.temperature).toBe(0);
     expect(params.logprobs).toBe(true);
-    expect(params.top_logprobs).toBe(50);
+    expect(params.top_logprobs).toBe(20);
     expect(params.chat_template_kwargs).toEqual({ enable_thinking: false });
     expect(params.stream).toBe(false);
     // Prompt includes the lettered options and the single-letter instruction.
     expect(params.messages[0].content).toContain('A: walk — Go for a walk');
     expect(params.messages[0].content).toContain('exactly one letter');
+  });
+
+  it('ignores malformed logprob entries instead of crashing on them', async () => {
+    // A non-conforming server can send nulls or token-less entries inside
+    // top_logprobs; they are skipped, and the well-formed candidates decide.
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              logprobs: {
+                content: [
+                  {
+                    top_logprobs: [
+                      null,
+                      { token: null, logprob: Math.log(0.9) },
+                      { token: ' A', logprob: Math.log(0.3) },
+                      { token: ' B', logprob: Math.log(0.7) },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const answer = await system1Choice(question());
+    expect(answer.choice).toBe('movie');
+    expect(answer.probabilities.walk).toBeCloseTo(0.3, 10);
+    expect(answer.probabilities.movie).toBeCloseTo(0.7, 10);
+  });
+
+  it('forwards extraBody extra keys and lets the user override the thinking default', async () => {
+    fetchMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
+    await system1Choice({
+      ...question(),
+      model: {
+        ...question().model,
+        extraBody: {
+          think: false, // Ollama-native key; engines ignore what they don't know
+          chat_template_kwargs: { enable_thinking: true }, // user override wins per key
+        },
+      },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const params = JSON.parse(init.body as string);
+    // Exotic key passes through verbatim...
+    expect(params.think).toBe(false);
+    // ...while the user's chat_template_kwargs override replaced the default,
+    // and the reserved sampling knobs were not touched.
+    expect(params.chat_template_kwargs).toEqual({ enable_thinking: true });
+    expect(params.max_tokens).toBe(1);
+    expect(params.temperature).toBe(0);
+    expect(params.logprobs).toBe(true);
+    expect(params.top_logprobs).toBe(20);
+  });
+
+  it('keeps the default thinking toggle and ignores reserved keys passed through extraBody', async () => {
+    fetchMock.mockResolvedValueOnce(response([logprobToken('A', Math.log(0.6))]));
+    await system1Choice({
+      ...question(),
+      model: {
+        ...question().model,
+        extraBody: {
+          model: 'other',
+          max_tokens: 100,
+          stream: true,
+          messages: [],
+          logprobs: false,
+        },
+      },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const params = JSON.parse(init.body as string);
+    // Reserved keys never leak into the body as overrides; the request stays intact.
+    expect(params.model).toBe('model');
+    expect(params.max_tokens).toBe(1);
+    expect(params.stream).toBe(false);
+    expect(params.messages).toHaveLength(1);
+    expect(params.logprobs).toBe(true);
+    expect(params.chat_template_kwargs).toEqual({ enable_thinking: false });
   });
 
   it('forwards retry and timeout settings to the transport', async () => {

@@ -9,11 +9,15 @@ const criteria = {
 
 const ticket = 'Hi, I was charged twice this month. Can you refund the extra payment?';
 
+const model = {
+  apiBaseUrl: process.env.API_BASE_URL!,
+  apiKey: process.env.API_KEY!,
+  model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+};
+
 async function main() {
   const answer = await choice({
-    apiBaseUrl: process.env.API_BASE_URL!,
-    apiKey: process.env.API_KEY!,
-    model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+    model: model,
     mode: 'system1',
     state: `Customer support ticket:\n"${ticket}"`,
     instructions: 'Classify the ticket into the right department',

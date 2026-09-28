@@ -12,7 +12,7 @@ import { system1Choice } from './system1-choice.js';
  * inference (a single forward pass generating a single token), while System 2 is slower
  * and more costly: the LLM may reason and has to generate a full structured response.
  *
- * @param question - The decision to make: options, state, instructions and provider settings.
+ * @param question - The decision to make: options, state, instructions and the model to query.
  * @returns The winning option, the probability distribution over every option (sums to 1),
  *          and a 0..1 confidence (flat distribution → low, single peak → high).
  * @throws If there are fewer than 2 options, or if a criteria value is not a string.
@@ -22,9 +22,11 @@ import { system1Choice } from './system1-choice.js';
  * @example
  * ```ts
  * const answer = await choice({
- *   apiBaseUrl: 'http://localhost:8000/v1',
- *   apiKey: process.env.API_KEY!,
- *   model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+ *   model: {
+ *     apiBaseUrl: 'http://localhost:8000/v1',
+ *     apiKey: process.env.API_KEY!,
+ *     model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
+ *   },
  *   state: "It is raining and I am at home. I'm bored.",
  *   instructions: 'Give me a good plan to do now',
  *   criteria: {

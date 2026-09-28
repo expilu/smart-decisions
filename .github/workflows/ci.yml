@@ -22,12 +22,12 @@ jobs:
         node: [22, 24] # engines: >=22 — test the floor and the current LTS
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         # Pin the PR head SHA so coverage line numbers map onto the diff view.
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -46,7 +46,7 @@ jobs:
           matrix.node == 22 &&
           github.event_name == 'pull_request' &&
           !github.event.pull_request.head.repo.fork
-        uses: actions/upload-code-coverage@v1
+        uses: actions/upload-code-coverage@bfa741d815a28cb064a8e3a0837e577457a017d5 # v1
         with:
           file: coverage/cobertura-coverage.xml
           language: JavaScript

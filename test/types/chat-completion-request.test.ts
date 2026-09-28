@@ -18,4 +18,16 @@ describe('chatCompletionRequest', () => {
       Record<string, unknown> | undefined
     >();
   });
+
+  it('carries an index signature so engine-specific extras type-check on the body', () => {
+    // Extra fields (i.e. merged in from Model['extraBody']) must be representable
+    // on the wire type itself, and a plain request must remain assignable to it.
+    expectTypeOf<ChatCompletionRequest>().toExtend<Record<string, unknown>>();
+    const withExtras: ChatCompletionRequest = {
+      model: 'm',
+      messages: [],
+      reasoning_effort: 'none', // not a declared key; accepted via the index signature
+    };
+    expectTypeOf(withExtras).not.toBeNever();
+  });
 });
