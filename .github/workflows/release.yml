@@ -1,9 +1,12 @@
 name: Release
 
 # Two modes, decided by changesets/action:
-#  - pending changesets on main -> opens/updates the "Version Packages" PR
-#    (bumps package.json, rewrites CHANGELOG.md, syncs src/version.ts)
-#  - no pending changesets (a Version Packages PR was just merged)
+#  - pending changesets on main -> opens/updates the version PR
+#    (bumps package.json, rewrites CHANGELOG.md, syncs src/version.ts), titled
+#    "Version: X.Y.Z" after the release it prepares — computed by
+#    scripts/version-pr-meta.mjs from the pending changesets, before this
+#    action runs (it reads title/commit inputs at startup, not per PR)
+#  - no pending changesets (a version PR was just merged)
 #    -> node ./scripts/release.mjs: builds, publishes to npm with provenance
 #    (OIDC trusted publishing, no stored token), tags vX.Y.Z and creates the
 #    GitHub release from the CHANGELOG.md section — idempotently, so retries
@@ -17,8 +20,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write # tag + GitHub release + Version Packages PR
-  pull-requests: write # Version Packages PR
+  contents: write # tag + GitHub release + version PR
+  pull-requests: write # version PR
   id-token: write # npm trusted publishing (OIDC)
 
 jobs:
@@ -37,11 +40,29 @@ jobs:
 
       - run: npm ci
 
+      # Name the version PR after its release ("Version: X.Y.Z"). Compute it
+      # before the action starts, because the action snapshots its title/commit
+      # inputs at startup. Quits quietly whenever there is nothing to release
+      # (publish path, CI-only pushes); the || defaults in the action inputs
+      # below then leave the action's built-in "Version Packages" naming.
+      #
+      # bootstrap-main-ref: checkout@v4 may leave a detached HEAD with no local
+      # `main`; `changeset status` merges against config.baseBranch (main) and
+      # would silently throw, so point main at HEAD first (a no-op when it
+      # already exists). No push, no merge — just a local ref name.
+      - run: |
+          git rev-parse -q --verify main >/dev/null 2>&1 \
+            || git branch main "$GITHUB_SHA"
+
+      - run: node ./scripts/version-pr-meta.mjs
+
       - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           # Single command: the action whitespace-splits this input and spawns
           # it as args (no shell), so chaining belongs in the package script.
           version: npm run changeset:version
           publish: node ./scripts/release.mjs
+          title: ${{ env.VERSION_PR_TITLE || 'Version Packages' }}
+          commit: ${{ env.VERSION_PR_COMMIT || 'Version Packages' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
