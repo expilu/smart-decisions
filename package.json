@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "example": "node --env-file=.env --import tsx examples/basic.ts",
     "example:routing": "node --env-file=.env --import tsx examples/ticket-routing.ts",
+    "example:reply-urgency": "node --env-file=.env --import tsx examples/reply-urgency.ts",
     "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run typecheck && npm run build && npm test"
   },
   "repository": {
@@ -33,6 +34,7 @@
     "openai-api",
     "probabilities",
     "routing",
+    "scoring",
     "semantic-routing",
     "system1",
     "system2",

@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { ChoiceMode } from '../../src/types/choice-mode.js';
 import type { Model } from '../../src/types/model.js';
+import type { Mode } from '../../src/types/mode.js';
 import type { Question } from '../../src/types/question.js';
 
 // src/types/question.ts contains only types, so these are compile-time
@@ -11,7 +11,7 @@ describe('question', () => {
     expectTypeOf<Question['model']>().toEqualTypeOf<Model>();
     expectTypeOf<Question['maxRetries']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<Question['timeoutMs']>().toEqualTypeOf<number | undefined>();
-    expectTypeOf<Question['mode']>().toEqualTypeOf<ChoiceMode | undefined>();
+    expectTypeOf<Question['mode']>().toEqualTypeOf<Mode | undefined>();
     expectTypeOf<Question['state']>().toEqualTypeOf<string>();
     expectTypeOf<Question['instructions']>().toEqualTypeOf<string>();
     expectTypeOf<Question['criteria']>().toEqualTypeOf<Record<string, string>>();

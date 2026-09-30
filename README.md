@@ -11,11 +11,11 @@ To make the decision, you can choose between **[System 1](#system-1-vs-system-2)
 
 Think of it as a smart `if`.
 
-Where `if` can _only_ branch on a boolean expression, a `choice()` branches on _**meaning**_.
+Where `if` can _only_ branch on a boolean expression, a `choice()` branches on _**meaning**_: you describe a situation (aka _**state**_), the _**options**_ to choose from and _**instructions**_, the library turns that into a _**decision**_, and hands you back the _**per-option probabilities**_.
 
-You describe a situation (aka _**state**_), the _**options**_ to choose from and _**instructions**_, the library turns that into a _**decision**_, and hands you back the _**per-option probabilities**_.
+Its sibling `score()` rates instead of choosing: when the answer is a position on a spectrum (how fast a reply is needed, how warm a lead is, how close a draft is to done) you describe the _**levels**_ of that spectrum and get back a _**score**_ that can land **between two levels**, with the _**per-level probabilities**_.
 
-You are also handed the _**confidence**_: how sure it is about the decision.
+Ask either and you are also handed the _**confidence**_: how sure it is about the answer.
 
 Software can then use those _**probabilities**_ and _**confidence**_ to act autonomously (route a request, triage an alert, pick a reply) and to _know when not to act_ (low confidence → fall back to System 2, a human, or another code path).
 
@@ -76,6 +76,47 @@ Notes:
   (`Not implemented yet`).
 - `confidence` is derived from the distribution shape. See
   [under the hood](#how-it-works-under-the-hood) for the exact formula.
+
+### Rate a position on a spectrum with `score()`
+
+When the answer is not one of a fixed set but a position on a spectrum, describe
+the spectrum as ordered `criteria` and `score()` returns where the state
+lands:
+
+```typescript
+const answer = await score({
+  model,
+  state:
+    'Can you hop on a quick call before the 3pm? Legal is asking about the rider we flagged this morning.',
+  instructions: 'How fast does this need a reply?',
+  criteria: [
+    'No rush; whenever there is a spare moment',
+    'Within the week is fine',
+    'Before the day ends',
+    'Within the hour',
+    'Right now, drop everything',
+  ],
+});
+
+console.log(answer);
+```
+
+`answer` has this shape:
+
+```typescript
+{
+  score: 2.43; // position on the levels line
+  probabilities: { '0': 0.0, '1': 0.0, '2': 0.57, '3': 0.43, '4': 0.0 }; // sums to 1
+  confidence: 0.38; // 0..1 — flat distribution → low, single peak → high
+  legend: { '0': 'No rush...', '1': 'Within the week...', '2': 'Before the day ends', '3': 'Within the hour', '4': 'Right now...' };
+}
+```
+
+### `choice()` or `score()`?
+
+- Options that are a fixed set with **no order** between them (dept names,
+  categories, languages, actions) → `choice()`.
+- A position on a spectrum you can describe in **distinct steps** → `score()`.
 
 ## Examples
 
@@ -168,7 +209,7 @@ The key trick: an LLM always computes a **probability distribution over all poss
 
 That's only guaranteed with an actual generation, so we ask for one with a limit of just one token. **The generated token itself is irrelevant and gets discarded**. What matters is the letter logits that make up the probability distribution over our options.
 
-The model is asked a single question and reads the logprobs of the answer's first (and only) generated token:
+For `choice()`, the model is asked a single question and reads the logprobs of the answer's first (and only) generated token:
 
 1. Each option (`criteria` key) is assigned a letter of the alphabet and rendered in the prompt as `A: key — description`.
 2. The request is tuned to make the answer itself be exactly one letter (deterministic and cheap):
@@ -181,6 +222,8 @@ The model is asked a single question and reads the logprobs of the answer's firs
    report declares all candidate letters; the highest probability among them wins.
 4. Letter probabilities are normalized into the `probabilities` map (sums to 1).
 5. `confidence` summarizes how decisive the answer is: if the probability is spread evenly across the options (the model has no clear instinct), it stays near 0; the more the probability piles up on one option, the closer it gets to 1.
+
+`score()` runs the same single forward pass; only the symbols differ. Every level is rendered as `i: description` and its symbol is exactly that digit, so the model answers with exactly one digit and the digit probabilities become the per-level distribution. The score itself is computed in code: each level number weighted by its probability, added up, the probability-weighted mean of the level numbers, which is why a score can fall between two levels. When no level digit shows up in the logprob window at all, the distribution falls back to uniform: the score lands on the exact spectrum midpoint and the confidence drops to 0 — a visible, correctly-labeled "no signal" answer.
 
 ### System 2
 
@@ -200,6 +243,7 @@ Planned
 
 Perhaps
 
+- [ ] Multi-question batching: evaluating several questions in one request.
 - [ ] Option for System 1 using dedicated decision models once the ecosystem (API standards, model behaviours,...) is more stable
 
 ## License

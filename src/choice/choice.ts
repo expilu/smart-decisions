@@ -1,5 +1,6 @@
 import type { Question } from '../types/question.js';
 import type { ChoiceAnswer } from '../types/choice-answer.js';
+import { routeMode } from '../utils/mode/route-mode.js';
 import { system1Choice } from './system1-choice.js';
 
 /**
@@ -18,7 +19,7 @@ import { system1Choice } from './system1-choice.js';
  * @throws If there are fewer than 2 options, or if a criteria value is not a string.
  *         (In System 1 mode, more than 26 options also throw — enforced inside `system1Choice`.)
  * @throws In System 2 mode (not implemented yet).
- * @throws If `mode` is not a known `ChoiceMode` value.
+ * @throws If `mode` is not a known `Mode` value.
  * @example
  * ```ts
  * const answer = await choice({
@@ -53,18 +54,8 @@ export async function choice(question: Question): Promise<ChoiceAnswer> {
     }
   }
 
-  // Default to System 1
-  const mode = question.mode ?? 'system1';
-
+  // Route through the shared mode router.
+  // Default to System 1.
   // TODO: add an option to choose between reasoning and non-reasoning mode.
-
-  // Route to the selected mode. The final else is unreachable from TypeScript,
-  // but keeps JS callers honest with a clear error.
-  if (mode === 'system1') {
-    return await system1Choice(question);
-  } else if (mode === 'system2') {
-    throw new Error('Not implemented yet'); // TODO: implement system2.
-  } else {
-    throw new Error('Unsupported mode');
-  }
+  return routeMode(question.mode, () => system1Choice(question));
 }
