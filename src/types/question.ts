@@ -1,5 +1,4 @@
-import type { ChoiceMode } from './choice-mode.js';
-import type { Model } from './model.js';
+import type { BaseQuestion } from './base-question.js';
 
 /**
  * The decision to make: options, state, instructions, mode and the model to query.
@@ -18,20 +17,7 @@ import type { Model } from './model.js';
  * };
  * ```
  */
-export interface Question {
-  /** The model to use and the OpenAI-compatible API serving it (endpoint, credentials, model id and extra request settings) */
-  model: Model;
-  /** Maximum number of retries after a failed attempt (network errors, 408/409/429/5xx). Defaults to 2 */
-  maxRetries?: number;
-  /** Per-attempt timeout in milliseconds. Defaults to 600000 */
-  timeoutMs?: number;
-  /** Choose between System 1 or System 2 mode. Defaults to `'system1'` */
-  mode?: ChoiceMode;
-  /** The state to evaluate */
-  // TODO: allow passing objects
-  state: string;
-  /** The question to answer */
-  instructions: string;
+export interface Question extends BaseQuestion {
   /** The options for the answer. Keys are option names and values are descriptions of the option. i.e. `{ walk: 'Go for a walk', movie: 'Watch a movie' }` */
   criteria: Record<string, string>;
 }
