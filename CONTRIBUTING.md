@@ -84,10 +84,11 @@ Choosing the bump type:
 - `major` — breaking change, once there is a 1.0 to break
 
 What happens next is automatic: merging changeset-carrying PRs makes CI open a
-"Version Packages" PR that bumps the version, rewrites `CHANGELOG.md` and keeps
-`src/version.ts` in sync; merging that PR publishes to npm (with provenance),
-pushes the `vX.Y.Z` tag and creates the GitHub release with the changelog
-section as its notes. Releases are never cut by hand.
+"Version: X.Y.Z" PR — named after the release it prepares — that bumps the
+version, rewrites `CHANGELOG.md` and keeps `src/version.ts` in sync; merging
+that PR publishes to npm (with provenance), pushes the `vX.Y.Z` tag and creates
+the GitHub release with the changelog section as its notes. Releases are never
+cut by hand.
 
 ## Pull requests
 
