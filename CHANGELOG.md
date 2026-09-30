@@ -1,5 +1,27 @@
 # smart-decisions
 
+## 0.4.0
+
+### Minor Changes
+
+- [#15](https://github.com/expilu/smart-decisions/pull/15) [`d88ce52`](https://github.com/expilu/smart-decisions/commit/d88ce525831e719570a27924d75edc9797b7b8f2) Thanks [@expilu](https://github.com/expilu)! - feat: `score()` — rate a position on a spectrum
+
+  New `score()` primitive for decisions that are a position on a scale of ordered,
+  described levels: its answer is a `score` (the probability-weighted mean of the
+  level numbers, so it can fall between two levels), the per-level `probabilities`
+  and `legend` keyed by level number as string, and the usual 0..1 `confidence`.
+  Accepts 2..10 level descriptions in `criteria` (an ordered array, low end of the
+  scale first); one dimension per question is recommended. Not implemented yet in System 2 mode.
+
+- [#15](https://github.com/expilu/smart-decisions/pull/15) [`d88ce52`](https://github.com/expilu/smart-decisions/commit/d88ce525831e719570a27924d75edc9797b7b8f2) Thanks [@expilu](https://github.com/expilu)! - feat: shared System 1 core, shared mode router and the `Mode` type
+
+  `choice()` System 1 answers are now produced through `src/system1/system1.ts` (the
+  one-token logprobs engine any System 1 question type reuses) and `src/utils/mode/route-mode.ts`
+  (the mode router: default to System 1, System 2 answers "Not implemented yet" from a single
+  stub). New exported types: `Mode` (the shared `'system1' | 'system2'` union) and `BaseQuestion`
+  (the fields every question type carries — `Question` extends it). No behavior change:
+  same prompts, same responses, same errors.
+
 ## 0.3.0
 
 ### Minor Changes
