@@ -13,6 +13,7 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "bench:latency": "node --env-file=.env --import tsx scripts/bench-latency.ts",
     "example": "node --env-file=.env --import tsx examples/basic.ts",
     "example:routing": "node --env-file=.env --import tsx examples/ticket-routing.ts",
     "example:noul": "node --env-file=.env --import tsx examples/noul.ts",
