@@ -1,7 +1,10 @@
 export type { Mode } from './types/mode.js';
 export type { Model } from './types/model.js';
+export type { NoulAnswer } from './types/noul-answer.js';
+export type { NoulCriteria, NoulQuestion } from './types/noul-question.js';
 export type { Question } from './types/question.js';
 export type { ScoreAnswer } from './types/score-answer.js';
 export type { ScoreQuestion } from './types/score-question.js';
 export { choice } from './choice/choice.js';
+export { noul } from './noul/noul.js';
 export { score } from './score/score.js';
