@@ -5,21 +5,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![types](https://img.shields.io/npm/types/smart-decisions)](https://www.npmjs.com/package/smart-decisions)
 
-A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM.
-
-To make the decision, you can choose between **[System 1](#system-1-vs-system-2) (fast, instinctive, milliseconds)** or **[System 2](#system-1-vs-system-2) (slow, deliberate, several seconds)** intelligence.
+A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM AI model.
 
 Think of it as a smart `if`.
 
-Where `if` can _only_ branch on a boolean expression, a `choice()` branches on _**meaning**_: you describe a situation (aka _**state**_), the _**options**_ to choose from and _**instructions**_, the library turns that into a _**decision**_, and hands you back the _**per-option probabilities**_.
+Where `if` can _only_ branch on a boolean expression, a decision branches on _**meaning**_: you describe a situation (aka _**state**_), the _**options**_ to choose from and _**instructions**_, the library turns that into a _**decision**_, and hands you back the _**per-option probabilities**_.
 
-Its sibling `score()` rates instead of choosing: when the answer is a position on a spectrum (how fast a reply is needed, how warm a lead is, how close a draft is to done) you describe the _**levels**_ of that spectrum and get back a _**score**_ that can land **between two levels**, with the _**per-level probabilities**_.
+You are also handed the _**confidence**_: how sure it is about the answer.
 
-Its other sibling `noul()` judges instead: when exactly one yes/no proposition is on trial (does this message want a human, does this resume mention distributed systems) you ask it and get back a _**probability**_ — 0..1, the chance the answer is yes — which your code _**thresholds**_.
+To make the decision, you can choose between **[System 1](#system-1-vs-system-2) (fast, instinctive, milliseconds)** or **[System 2](#system-1-vs-system-2) (slow, deliberate, several seconds)** intelligence.
 
-Ask `choice()` or `score()` and you are also handed the _**confidence**_: how sure it is about the answer. A `noul()` needs none: with only two outcomes, the single probability describes the judgment completely — a value near 0.5 is the "no lean" signal in itself.
-
-Software can then use those _**probabilities**_ and _**confidence**_ to act autonomously (route a request, triage an alert, pick a reply) and to _know when not to act_ (low confidence → fall back to System 2, a human, or another code path).
+Software can then use those _**probabilities**_ and _**confidence**_ to act autonomously (route a request, triage an alert, pick a reply,...) and to _know when not to act_ (low confidence → fall back to System 2, a human, or another code path).
 
 The library works with any LLM you might already be using, not requiring a dedicated decisions model.
 
@@ -27,9 +23,6 @@ The library works with any LLM you might already be using, not requiring a dedic
 > Early stage of development.
 >
 > Only System 1 is implemented today; System 2 is coming.
->
-> The API is not final and the complete intended scope of the library is not yet
-> fulfilled, expect breaking changes before 1.0.
 
 ## Install
 
@@ -127,7 +120,7 @@ On modest hardware it is genuinely fast. Measured locally with my (aging) testin
 [llama.cpp](https://github.com/ggml-org/llama.cpp) serving
 **Qwen3.5-4B Q4_K_M** on an **RTX 2080** (a 2018 card):
 
-- **~360 ms mean** per decision (median).
+- **~70 ms median** per decision.
 
 That includes the whole round trip on the small machine; the library itself adds one
 forward pass and one token of generated text to the request (details in
