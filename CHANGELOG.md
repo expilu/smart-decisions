@@ -1,5 +1,11 @@
 # smart-decisions
 
+## 0.5.0
+
+### Minor Changes
+
+- [#17](https://github.com/expilu/smart-decisions/pull/17) [`8c84db1`](https://github.com/expilu/smart-decisions/commit/8c84db1fc773411096e0d09e15d90ed04ae8635b) - Add the `noul()` primitive: answers a yes/no question with the probability that the answer is "yes" (0..1).
+
 ## 0.4.0
 
 ### Minor Changes
