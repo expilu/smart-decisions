@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![types](https://img.shields.io/npm/types/smart-decisions)](https://www.npmjs.com/package/smart-decisions)
 
-A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM AI model.
+A TypeScript library that answers a decision question with a **probability distribution over every option**, using any existing LLM.
 
 Think of it as a smart `if`.
 
