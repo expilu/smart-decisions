@@ -77,124 +77,18 @@ Notes:
 - `mode` defaults to `'system1'`; passing `'system2'` currently throws
   (`Not implemented yet`).
 - `confidence` is derived from the distribution shape. See
-  [under the hood](#how-it-works-under-the-hood) for the exact formula.
+  [under the hood](https://github.com/expilu/smart-decisions/wiki/Under-the-hood).
 
-### Rate a position on a spectrum with `score()`
+`choice()` has two siblings for the other two kinds of answers the library supports. [`score()`](https://github.com/expilu/smart-decisions/wiki/score) rates a position on a spectrum you describe in ordered levels, and [`noul()`](https://github.com/expilu/smart-decisions/wiki/noul) judges a single yes/no question..
 
-When the answer is not one of a fixed set but a position on a spectrum, describe
-the spectrum as ordered `criteria` and `score()` returns where the state
-lands:
+The wiki also holds an [examples section](https://github.com/expilu/smart-decisions/wiki/Examples) with longer walkthroughs of specific use cases.
 
-```typescript
-const answer = await score({
-  model,
-  state:
-    'Can you hop on a quick call before the 3pm? Legal is asking about the rider we flagged this morning.',
-  instructions: 'How fast does this need a reply?',
-  criteria: [
-    'No rush; whenever there is a spare moment',
-    'Within the week is fine',
-    'Before the day ends',
-    'Within the hour',
-    'Right now, drop everything',
-  ],
-});
+### `choice()` or `score()` or `noul()`?
 
-console.log(answer);
-```
-
-`answer` has this shape:
-
-```typescript
-{
-  score: 2.43; // position on the levels line
-  probabilities: { '0': 0.0, '1': 0.0, '2': 0.57, '3': 0.43, '4': 0.0 }; // sums to 1
-  confidence: 0.38; // 0..1 — flat distribution → low, single peak → high
-  legend: { '0': 'No rush...', '1': 'Within the week...', '2': 'Before the day ends', '3': 'Within the hour', '4': 'Right now...' };
-}
-```
-
-### Judge a yes/no question with `noul()`
-
-When exactly one proposition is on trial, ask it directly. `noul()` returns the
-probability that the answer is yes; you set the threshold depending on the
-cost of being wrong:
-
-```typescript
-const answer = await noul({
-  model,
-  state: 'I have asked three times now. Can I please just talk to a real person?',
-  instructions: 'Is the customer asking for a human agent?',
-  criteria: {
-    true: 'Explicitly asks for a person, agent or human',
-    false: 'No sign of wanting a person',
-  },
-});
-
-console.log(answer);
-```
-
-`answer` has this shape:
-
-```typescript
-{
-  noul: 0.99; // the probability the answer is "yes" — 0 = no, 1 = yes, 0.5 = it split itself
-}
-```
-
-Notes:
-
-- `criteria` is optional: a clear question usually answers well without it.
-  Add it when the yes/no boundary is subtle.
-- With only two outcomes there is no separate `confidence` — the one number
-  describes the judgment completely. Threshold values in your code, and route
-  the near-0.5 band to a human rather than to either code path.
-
-### `choice()` or `score()`? (or `noul()`?)
-
-- A proposition to judge yes/no → `noul()` (and combine several Nouls in code,
-  since each ought to judge one condition only).
+- A proposition to judge yes/no → [`noul()`](https://github.com/expilu/smart-decisions/wiki/noul).
 - Options that are a fixed set with **no order** between them (dept names,
-  categories, languages, actions) → `choice()`.
-- A position on a spectrum you can describe in **distinct steps** → `score()`.
-
-## Examples
-
-### Route a support ticket to the right department
-
-Classify incoming tickets. When the distribution is too flat to trust, the returned `confidence` tells you so you can escalate to a human:
-
-```typescript
-import { choice } from 'smart-decisions';
-
-const model = {
-  apiBaseUrl: 'http://localhost:8000/v1',
-  apiKey: 'a-super-secret-api-key',
-  model: '/models/Qwen3.5-4B-Q4_K_M.gguf',
-};
-
-const criteria = {
-  billing: 'Customer asks about invoices, payments, refunds or charges',
-  technical: 'Customer reports a bug, error or product malfunction',
-  sales: 'Customer asks about pricing, plans or upgrading',
-  account: 'Customer needs help with login or account access',
-};
-
-const answer = await choice({
-  model,
-  mode: 'system1',
-  state:
-    'Customer support ticket:\n"Hi, I was charged twice this month. Can you refund the extra payment?"',
-  instructions: 'Classify the ticket into the right department',
-  criteria,
-})!;
-
-if (answer.confidence < 0.5) {
-  return forwardToHuman(answer); // too unsure to act autonomously
-}
-
-routeTo(answer.choice); // 'billing'
-```
+  categories, languages, actions) → [`choice()`](https://github.com/expilu/smart-decisions/wiki/choice).
+- A position on a spectrum → [`score()`](https://github.com/expilu/smart-decisions/wiki/score).
 
 ## Requirements
 
@@ -237,40 +131,9 @@ On modest hardware it is genuinely fast. Measured locally with my (aging) testin
 
 That includes the whole round trip on the small machine; the library itself adds one
 forward pass and one token of generated text to the request (details in
-[under the hood](#how-it-works-under-the-hood)). Every decision needs
+[under the hood](https://github.com/expilu/smart-decisions/wiki/Under-the-hood)). Every decision needs
 re-prefill of state + criteria, so latency scales with prompt size. Long criteria
 lists will be slower on the same hardware.
-
-## How it works under the hood
-
-### System 1
-
-The key trick: an LLM always computes a **probability distribution over all possible tokens** before it answers. We just need the right request to _receive_ that distribution.
-
-That's only guaranteed with an actual generation, so we ask for one with a limit of just one token. **The generated token itself is irrelevant and gets discarded**. What matters is the letter logits that make up the probability distribution over our options.
-
-For `choice()`, the model is asked a single question and reads the logprobs of the answer's first (and only) generated token:
-
-1. Each option (`criteria` key) is assigned a letter of the alphabet and rendered in the prompt as `A: key — description`.
-2. The request is tuned to make the answer itself be exactly one letter (deterministic and cheap):
-   - `max_tokens: 1` (the answer is a single token, one single pass of the model)
-   - `temperature: 0` (greedy: always the most likely letter)
-   - `top_logprobs: 50` (wide enough window that every declared letter token, and its token variants, lands in the report)
-   - thinking-reasoning disabled (avoid wasting this one token on a think tag)
-3. What we read is not the answer token itself (it is thrown away): the winning
-   option is whichever letter token (linked to an option) carried the highest generated probability. The
-   report declares all candidate letters; the highest probability among them wins.
-4. Letter probabilities are normalized into the `probabilities` map (sums to 1).
-5. `confidence` summarizes how decisive the answer is: if the probability is spread evenly across the options (the model has no clear instinct), it stays near 0; the more the probability piles up on one option, the closer it gets to 1.
-
-`score()` runs the same single forward pass; only the symbols differ. Every level is rendered as `i: description` and its symbol is exactly that digit, so the model answers with exactly one digit and the digit probabilities become the per-level distribution. The score itself is computed in code: each level number weighted by its probability, added up, the probability-weighted mean of the level numbers, which is why a score can fall between two levels. When no level digit shows up in the logprob window at all, the distribution falls back to uniform: the score lands on the exact spectrum midpoint and the confidence drops to 0 — a visible, correctly-labeled "no signal" answer.
-
-`noul()` is the same one forward pass in its degenerate case: only two symbols exist, `Y` and `N`, and with the two probabilities normalized there is nothing left to compute — `P('Y')` is the whole answer, the probability of "yes". Neither symbol shows up in the logprob window at all → uniform fallback → `noul` lands on exactly 0.5, the visible "no signal" value for a binary judgment.
-
-### System 2
-
-> ⚠️ **Work in progress.**
-> Not yet implemented, but will just use an LLM with structured outputs and the choice to reason or not.
 
 ## Status
 
