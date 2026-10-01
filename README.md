@@ -15,7 +15,9 @@ Where `if` can _only_ branch on a boolean expression, a `choice()` branches on _
 
 Its sibling `score()` rates instead of choosing: when the answer is a position on a spectrum (how fast a reply is needed, how warm a lead is, how close a draft is to done) you describe the _**levels**_ of that spectrum and get back a _**score**_ that can land **between two levels**, with the _**per-level probabilities**_.
 
-Ask either and you are also handed the _**confidence**_: how sure it is about the answer.
+Its other sibling `noul()` judges instead: when exactly one yes/no proposition is on trial (does this message want a human, does this resume mention distributed systems) you ask it and get back a _**probability**_ — 0..1, the chance the answer is yes — which your code _**thresholds**_.
+
+Ask `choice()` or `score()` and you are also handed the _**confidence**_: how sure it is about the answer. A `noul()` needs none: with only two outcomes, the single probability describes the judgment completely — a value near 0.5 is the "no lean" signal in itself.
 
 Software can then use those _**probabilities**_ and _**confidence**_ to act autonomously (route a request, triage an alert, pick a reply) and to _know when not to act_ (low confidence → fall back to System 2, a human, or another code path).
 
@@ -112,8 +114,46 @@ console.log(answer);
 }
 ```
 
-### `choice()` or `score()`?
+### Judge a yes/no question with `noul()`
 
+When exactly one proposition is on trial, ask it directly. `noul()` returns the
+probability that the answer is yes; you set the threshold depending on the
+cost of being wrong:
+
+```typescript
+const answer = await noul({
+  model,
+  state: 'I have asked three times now. Can I please just talk to a real person?',
+  instructions: 'Is the customer asking for a human agent?',
+  criteria: {
+    true: 'Explicitly asks for a person, agent or human',
+    false: 'No sign of wanting a person',
+  },
+});
+
+console.log(answer);
+```
+
+`answer` has this shape:
+
+```typescript
+{
+  noul: 0.99; // the probability the answer is "yes" — 0 = no, 1 = yes, 0.5 = it split itself
+}
+```
+
+Notes:
+
+- `criteria` is optional: a clear question usually answers well without it.
+  Add it when the yes/no boundary is subtle.
+- With only two outcomes there is no separate `confidence` — the one number
+  describes the judgment completely. Threshold values in your code, and route
+  the near-0.5 band to a human rather than to either code path.
+
+### `choice()` or `score()`? (or `noul()`?)
+
+- A proposition to judge yes/no → `noul()` (and combine several Nouls in code,
+  since each ought to judge one condition only).
 - Options that are a fixed set with **no order** between them (dept names,
   categories, languages, actions) → `choice()`.
 - A position on a spectrum you can describe in **distinct steps** → `score()`.
@@ -224,6 +264,8 @@ For `choice()`, the model is asked a single question and reads the logprobs of t
 5. `confidence` summarizes how decisive the answer is: if the probability is spread evenly across the options (the model has no clear instinct), it stays near 0; the more the probability piles up on one option, the closer it gets to 1.
 
 `score()` runs the same single forward pass; only the symbols differ. Every level is rendered as `i: description` and its symbol is exactly that digit, so the model answers with exactly one digit and the digit probabilities become the per-level distribution. The score itself is computed in code: each level number weighted by its probability, added up, the probability-weighted mean of the level numbers, which is why a score can fall between two levels. When no level digit shows up in the logprob window at all, the distribution falls back to uniform: the score lands on the exact spectrum midpoint and the confidence drops to 0 — a visible, correctly-labeled "no signal" answer.
+
+`noul()` is the same one forward pass in its degenerate case: only two symbols exist, `Y` and `N`, and with the two probabilities normalized there is nothing left to compute — `P('Y')` is the whole answer, the probability of "yes". Neither symbol shows up in the logprob window at all → uniform fallback → `noul` lands on exactly 0.5, the visible "no signal" value for a binary judgment.
 
 ### System 2
 
