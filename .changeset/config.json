@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "expilu/smart-decisions", "disableThanks": true }],
+  "changelog": [
+    "@changesets/changelog-github",
+    { "repo": "expilu/smart-decisions", "disableThanks": true }
+  ],
   "commit": false,
   "access": "public",
   "baseBranch": "main"
