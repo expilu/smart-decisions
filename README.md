@@ -106,7 +106,7 @@ The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_pro
   response. Slower and more costly. Hopefully more accurate. Usually done in several seconds.
 - **`mode: 'auto'`** gets you both, per question: System 1 answers first, and only a
   verdict whose confidence falls below a certain threshold escalates to
-  System 2. See the wiki: 
+  System 2. See the wiki:
   [Auto mode](https://github.com/expilu/smart-decisions/wiki/Auto-mode) article.
 
 ## Performance and cost
