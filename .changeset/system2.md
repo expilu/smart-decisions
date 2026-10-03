@@ -1,5 +1,0 @@
----
-'smart-decisions': minor
----
-
-Implement System 2 mode (`mode: 'system2'`) for `choice()`, `score()` and `noul()`: the model deliberates and answers a minimal structured object — one integer 0..10 rating per candidate — and the same answer shapes as System 1 come out of it (winner = argmax, distribution = normalized ratings, same entropy confidence). Requests use `response_format` with a strict ratings schema, `temperature: 0`, no default token budget, and a parse-validate-retry fallback that feeds rejection reasons back to the model so engines with broken or missing structured-output support still work. Adds the `thinking` question option (valid in 'system2'/'auto' mode; `false` sends `reasoning_effort: 'none'`) and the mode-partitioned question types: `Question`, `ScoreQuestion` and `NoulQuestion` switch from interfaces to unions over `mode`, so `thinking` set with `mode: 'system1'` no longer compiles — breaking for consumers extending those types with `interface X extends ...` (allowed by semver at 0.x).
