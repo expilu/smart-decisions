@@ -35,11 +35,7 @@ function check(where: string, ok: boolean, detail: string): void {
 function validateChoice(where: string, answer: ChoiceAnswer): void {
   const names = Object.keys(CHOICE_CRITERIA);
   const values = Object.values(answer.probabilities);
-  check(
-    where,
-    names.every((option) => answer.choice in answer.probabilities),
-    'winner is an option',
-  );
+  check(where, names.includes(answer.choice), 'winner is an option');
   check(
     where,
     Object.keys(answer.probabilities).length === names.length &&
