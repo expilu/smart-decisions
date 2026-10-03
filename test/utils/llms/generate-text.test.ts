@@ -344,4 +344,54 @@ describe('generateText', () => {
     expect(err.cause).toBe('boom');
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  // Debug logging is a documented surface of the transport (README): what must
+  // be in the stream, and above all what must never be.
+  describe('debug', () => {
+    const stderr = () => vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    it('logs the wire request, the endpoint and the response, and never credentials or query parameters', async () => {
+      fetchMock.mockResolvedValueOnce(ok({ choices: [] }));
+      const log = stderr();
+      try {
+        await generateText(
+          { apiBaseUrl: 'https://example.com/v1?trace=should-not-leak', apiKey: 'super-secret' },
+          request(),
+          { debug: true },
+        );
+        const entries = log.mock.calls.map((c) => String(c[0])).join('');
+        expect(entries).toContain(
+          '[smart-decisions:transport] POST https://example.com/v1/chat/completions (attempt 1)',
+        );
+        expect(entries).toContain('"model":"model"'); // the wire body is the detail
+        expect(entries).toContain('[smart-decisions:transport] HTTP 200 from');
+        // The redaction rules the README promises, asserted for real:
+        expect(entries).not.toContain('super-secret'); // key never in a line
+        expect(entries).not.toContain('should-not-leak'); // query params dropped
+        expect(entries).not.toContain('?trace'); // not even the prefix
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it('logs each retry with its reason and the wait', async () => {
+      fetchMock
+        .mockResolvedValueOnce(new Response('down', { status: 500 }))
+        .mockResolvedValueOnce(ok({ choices: [] }));
+      const log = stderr();
+      try {
+        const run = generateText(connection(), request(), { debug: true, maxRetries: 1 });
+        await vi.advanceTimersByTimeAsync(3500); // release the backoff
+        const res = await run;
+        expect(res.choices).toEqual([]);
+        const entries = log.mock.calls.map((c) => String(c[0])).join('');
+        expect(entries).toContain('[smart-decisions:transport] HTTP 500 from');
+        expect(entries).toContain('down'); // the raw error body is the detail
+        expect(entries).toContain('retrying after'); // the backoff decision
+        expect(entries).toContain('(attempt 2)'); // which attempt it requeued
+      } finally {
+        log.mockRestore();
+      }
+    });
+  });
 });

@@ -7,6 +7,7 @@ import { isTimeoutError } from '../network/is-timeout-error.js';
 import { retryDelayFromHeaders } from '../network/retry-delay-from-headers.js';
 import { shouldRetryStatus } from '../network/should-retry-status.js';
 import { VERSION } from '../../version.js';
+import { debugLog } from '../debug/debug-log.js';
 import type { ChatCompletion } from '../../types/chat-completion.js';
 import type { ChatCompletionRequest } from '../../types/chat-completion-request.js';
 import type { GenerateTextOptions } from '../../types/generate-text-options.js';
@@ -41,8 +42,9 @@ const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
  * @param request - Chat completions request body in the API's own wire format. Extra
  *        engine- or model-specific fields (i.e. from `Model['extraBody']`) may be
  *        present alongside the standard keys; they are serialized into the body as is.
- * @param options - Retry and timeout settings; defaults to 2 retries with a 10-minute
- *        timeout per attempt. Non-finite `maxRetries` falls back to the default.
+ * @param options - Retry, timeout and debug settings; defaults to 2 retries with a
+ *        10-minute timeout per attempt and debug off. Non-finite `maxRetries`
+ *        falls back to the default.
  * @returns The parsed response body. Response fields we don't consume are passed through untouched.
  * @throws If `apiBaseUrl` is not a valid URL, the API answers with a failing status,
  *         an unparsable or over-cap body, or keeps failing after every attempt.
@@ -76,6 +78,7 @@ export async function generateText(
       ? Math.max(0, Math.floor(options.maxRetries))
       : DEFAULT_MAX_RETRIES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const debug = options.debug === true;
 
   // The endpoint path is joined through the URL API so a query string on the base
   // URL (i.e. `https://host/v1?x=1`) survives the join instead of swallowing the
@@ -96,6 +99,8 @@ export async function generateText(
   for (let attempt = 0; ; attempt++) {
     let response: Response;
     let text: string;
+    const wireBody = JSON.stringify({ ...request, stream: false });
+    debugLog(debug, 'transport', `POST ${displayUrl} (attempt ${attempt + 1})`, wireBody);
     try {
       response = await fetch(url, {
         method: 'POST',
@@ -105,7 +110,7 @@ export async function generateText(
           Authorization: `Bearer ${connection.apiKey}`,
           'User-Agent': `smart-decisions/${VERSION}`,
         },
-        body: JSON.stringify({ ...request, stream: false }),
+        body: wireBody,
         signal: AbortSignal.timeout(timeoutMs),
         // An API should never answer this call with a redirect; refusing to
         // follow one keeps the Bearer token off unexpected paths and avoids a
@@ -117,6 +122,12 @@ export async function generateText(
       // instead of buffered (see MAX_RESPONSE_BYTES).
       text = await readBodyCapped(response, MAX_RESPONSE_BYTES);
     } catch (err) {
+      debugLog(
+        debug,
+        'transport',
+        `attempt ${attempt + 1} failed before a response`,
+        messageOf(err),
+      );
       // An over-cap body is deterministic: the same request cannot shrink on a
       // retry, so fail without burning the retry budget.
       if (isBodyTooLargeError(err)) {
@@ -128,19 +139,25 @@ export async function generateText(
       if (isTimeoutError(err) || attempt >= maxRetries) {
         throw new Error(`LLM request to ${displayUrl} failed: ${messageOf(err)}`, { cause: err });
       }
-      await sleep(backoffDelay(attempt));
+      const wait = backoffDelay(attempt);
+      debugLog(debug, 'transport', `retrying after ${wait} ms (attempt ${attempt + 2})`);
+      await sleep(wait);
       continue;
     }
     if (!response.ok) {
+      debugLog(debug, 'transport', `HTTP ${response.status} from ${displayUrl}`, text);
       if (attempt >= maxRetries || !shouldRetryStatus(response)) {
         throw new Error(
           `LLM API returned HTTP ${response.status}: ${truncate(text, MAX_ERROR_BODY_CHARS)}`,
         );
       }
       // The server's requested wait wins over our own backoff when it sends one.
-      await sleep(retryDelayFromHeaders(response) ?? backoffDelay(attempt));
+      const wait = retryDelayFromHeaders(response) ?? backoffDelay(attempt);
+      debugLog(debug, 'transport', `retrying after ${wait} ms (attempt ${attempt + 2})`);
+      await sleep(wait);
       continue;
     }
+    debugLog(debug, 'transport', `HTTP ${response.status} from ${displayUrl}`, text);
     try {
       return JSON.parse(text) as ChatCompletion;
     } catch {

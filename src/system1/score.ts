@@ -2,6 +2,7 @@ import type { ScoreAnswer } from '../types/score-answer.js';
 import type { ScoreQuestion } from '../types/score-question.js';
 import { system1Prompt, system1SymbolProbabilities } from './system1.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
+import { expectedValue } from '../utils/math/expected-value.js';
 
 /**
  * System 1 score: fast, automatic and instinctive — the immediate "gut" rating
@@ -79,25 +80,24 @@ export async function system1Score(question: ScoreQuestion): Promise<ScoreAnswer
     return digitSet.has(digit) ? digit : null;
   });
 
-  // Per-level probabilities, legend and the score in one pass over the aligned
-  // distribution. The score is the position on the level line: each level
-  // number weighted by its probability. The distribution comes back aligned to
-  // `levels` (one probability per level), so `levels[i]` can never be missing
-  // for a well-returned array.
+  // Per-level probabilities and legend in one pass over the aligned
+  // distribution. The distribution comes back aligned to `levels` (one
+  // probability per level), so `levels[i]` can never be missing for a
+  // well-returned array. The position on the line — each level number
+  // weighted by its probability — is computed once, in code, shared with
+  // System 2 (`expectedValue`).
   const probabilities: Record<string, number> = {};
   const legend: Record<string, string> = {};
-  let score = 0;
   probs.forEach((p, i) => {
     const key = `${i}`;
     probabilities[key] = p;
     legend[key] = levels[i]!;
-    score += i * p;
   });
 
   const confidence = normalizeEntropy(Object.values(probabilities));
 
   return {
-    score: score,
+    score: expectedValue(probs),
     probabilities: probabilities,
     confidence: confidence,
     legend: legend,

@@ -18,6 +18,10 @@
     "example:routing": "node --env-file=.env --import tsx examples/ticket-routing.ts",
     "example:noul": "node --env-file=.env --import tsx examples/noul.ts",
     "example:reply-urgency": "node --env-file=.env --import tsx examples/reply-urgency.ts",
+    "example:system2": "node --env-file=.env --import tsx examples/basic-system2.ts",
+    "example:system2-auto": "node --env-file=.env --import tsx examples/ticket-routing-auto.ts",
+    "example:system2-noul": "node --env-file=.env --import tsx examples/noul-system2.ts",
+    "smoke:system2": "node --env-file=.env --import tsx scripts/smoke-system2.ts",
     "prepublishOnly": "rm -rf dist && npm run lint && npm run format:check && npm run typecheck && npm run build && npm test"
   },
   "repository": {

@@ -17,6 +17,7 @@ const model = {
 
 async function main() {
   const answer = await choice({
+    debug: true,
     model: model,
     mode: 'system1',
     state: `Customer support ticket:\n"${ticket}"`,

@@ -7,6 +7,7 @@ const model = {
 };
 
 const answer = await choice({
+  debug: true,
   model: model,
   mode: 'system1',
   state: "It is raining and I am at home. I'm bored.",

@@ -2,6 +2,7 @@ import type { NoulAnswer } from '../types/noul-answer.js';
 import type { NoulQuestion } from '../types/noul-question.js';
 import { routeMode } from '../utils/mode/route-mode.js';
 import { system1Noul } from '../system1/noul.js';
+import { system2Noul } from '../system2/noul.js';
 
 /**
  * Answers a yes/no question with the probability that the answer is "yes".
@@ -79,5 +80,13 @@ export async function noul(question: NoulQuestion): Promise<NoulAnswer> {
 
   // Route through the shared mode router.
   // Default to System 1.
-  return routeMode(question.mode, () => system1Noul(question));
+  //
+  // Noul answers carry no confidence field (two outcomes describe the
+  // distribution completely), so the confidence-equivalent for escalation is
+  // the distance from the no-lean band: max(noul, 1 - noul).
+  return routeMode(question, {
+    system1: () => system1Noul(question),
+    system2: () => system2Noul(question),
+    confidence: (answer) => Math.max(answer.noul, 1 - answer.noul),
+  });
 }

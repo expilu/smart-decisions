@@ -19,11 +19,6 @@ Software can then use those _**probabilities**_ and _**confidence**_ to act auto
 
 The library works with any LLM you might already be using, not requiring a dedicated decisions model.
 
-> ⚠️ **Work in progress.**
-> Early stage of development.
->
-> Only System 1 is implemented today; System 2 is coming.
-
 ## Install
 
 ```bash
@@ -67,8 +62,8 @@ console.log(answer);
 
 Notes:
 
-- `mode` defaults to `'system1'`; passing `'system2'` currently throws
-  (`Not implemented yet`).
+- `mode` defaults to `'system1'`; pass `'system2'` or `'auto'` for the deliberate
+  modes (see [below](#system-1-vs-system-2)).
 - `confidence` is derived from the distribution shape. See
   [under the hood](https://github.com/expilu/smart-decisions/wiki/Under-the-hood).
 
@@ -85,12 +80,12 @@ The wiki also holds an [examples section](https://github.com/expilu/smart-decisi
 
 ## Requirements
 
-- An **OpenAI-compatible v1 API** that supports **`logprobs` / `top_logprobs`** in
-  chat completions.
+- An **OpenAI-compatible v1 API**. System 1 also needs
+  **`logprobs` / `top_logprobs`** in chat completions.
 
 > ⚠️ **Work in progress.**
 > Only [llama.cpp](https://github.com/ggml-org/llama.cpp) has been
-> tested for now
+> tested for now (both modes).
 
 ## Use case
 
@@ -120,7 +115,8 @@ On modest hardware it is genuinely fast. Measured locally with my (aging) testin
 [llama.cpp](https://github.com/ggml-org/llama.cpp) serving
 **Qwen3.5-4B Q4_K_M** on an **RTX 2080** (a 2018 card):
 
-- **~70 ms median** per decision.
+- **~70 ms median** per System 1 decision.
+- **~0.5–2 s** per System 2 decision with `thinking: false`, and **~10–20 s** with thinking enabled (reasoning costs wall time).
 
 That includes the whole round trip on the small machine; the library itself adds one
 forward pass and one token of generated text to the request (details in
@@ -133,8 +129,8 @@ lists will be slower on the same hardware.
 Planned
 
 - [x] System 1 (logit-based)
-- [ ] System 2 (LLM structured output, with reasoning / non-reasoning toggle)
-- [ ] mode: 'auto'
+- [x] System 2 (LLM structured output, with reasoning / non-reasoning toggle)
+- [x] mode: 'auto'
 - [ ] Test and adapt to more inference providers APIs and self hosted engines
 - [ ] Benchmarking and model sanity check tools
 - [ ] Final API

@@ -1,4 +1,4 @@
-import type { BaseQuestion } from './base-question.js';
+import type { ModeQuestion } from './mode-fields.js';
 
 /**
  * Describes what a "yes" and a "no" mean, for when the boundary between them
@@ -23,6 +23,10 @@ export interface NoulCriteria {
  * The judgment to make: a yes/no question, state, optional criteria and the
  * model to query.
  *
+ * A {@linkcode ModeQuestion} with the criteria of the noul. The System 2-only
+ * question fields (`thinking`, `autoModeThreshold`) are mode-validity-checked
+ * at the type level.
+ *
  * @example
  * ```ts
  * const question: NoulQuestion = {
@@ -40,7 +44,7 @@ export interface NoulCriteria {
  * };
  * ```
  */
-export interface NoulQuestion extends BaseQuestion {
+export type NoulQuestion = ModeQuestion & {
   /** What a yes and a no mean. Optional: the instructions alone usually answer well */
   criteria?: NoulCriteria;
-}
+};
