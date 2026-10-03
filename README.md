@@ -62,8 +62,9 @@ console.log(answer);
 
 Notes:
 
-- `mode` defaults to `'system1'`; pass `'system2'` or `'auto'` for the deliberate
-  modes (see [below](#system-1-vs-system-2)).
+- `mode` defaults to `'system1'`; pass `'system2'` for a deliberate verdict, or
+  `'auto'` to escalate fast answers to deliberate ones only when unsure
+  ([wiki](https://github.com/expilu/smart-decisions/wiki/Auto-mode)).
 - `confidence` is derived from the distribution shape. See
   [under the hood](https://github.com/expilu/smart-decisions/wiki/Under-the-hood).
 
@@ -103,6 +104,10 @@ The names come from [dual-process theory](https://en.wikipedia.org/wiki/Dual_pro
 - **System 2** is slow, effortful and deliberate — reasoning applied to reach a
   considered verdict. In this library: the LLM reasons and produces a full structured
   response. Slower and more costly. Hopefully more accurate. Usually done in several seconds.
+- **`mode: 'auto'`** gets you both, per question: System 1 answers first, and only a
+  verdict whose confidence falls below a certain threshold escalates to
+  System 2. See the wiki: 
+  [Auto mode](https://github.com/expilu/smart-decisions/wiki/Auto-mode) article.
 
 ## Performance and cost
 
