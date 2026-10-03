@@ -1,6 +1,6 @@
 import type { ScoreAnswer } from '../types/score-answer.js';
 import type { ScoreQuestion } from '../types/score-question.js';
-import { system1Prompt, system1SymbolProbabilities } from '../system1/system1.js';
+import { system1Prompt, system1SymbolProbabilities } from './system1.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
 
 /**
@@ -10,7 +10,8 @@ import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
  * Asks the model a single question and reads the logprobs of the answer's first
  * generated token: every level is rendered as a digit, the model answers with
  * exactly one digit, and the digit probabilities become the level distribution
- * through the shared System 1 engine in `src/system1/system1.ts`. This function
+ * through the shared System 1 engine in `src/system1/system1.ts`, a sibling of
+ * this file. This function
  * adds what is specific to Score: the digit mapping, the level bounds and the
  * expected value that turns the distribution into a position on the spectrum.
  *

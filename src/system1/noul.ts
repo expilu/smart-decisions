@@ -1,6 +1,6 @@
 import type { NoulAnswer } from '../types/noul-answer.js';
 import type { NoulQuestion } from '../types/noul-question.js';
-import { system1Prompt, system1SymbolProbabilities } from '../system1/system1.js';
+import { system1Prompt, system1SymbolProbabilities } from './system1.js';
 
 /** Word spellings that count as answering yes */
 const YES_WORDS = new Set(['y', 'yes', 'yeah', 'yep']);
@@ -15,7 +15,8 @@ const NO_WORDS = new Set(['n', 'no', 'nope', 'nah']);
  * answer's first generated token: yes and no are rendered as the two symbols
  * `Y` and `N`, the model answers with exactly one letter, and the two letters'
  * probabilities become the judgment through the shared System 1 engine in
- * `src/system1/system1.ts`. This function adds what is specific to Noul: the
+ * `src/system1/system1.ts`, a sibling of this file. This function adds what is
+ * specific to Noul:
  * two-symbol rendering (with the optional yes/no descriptions) and the ratio
  * that turns the two-symbol distribution into the single probability of "yes".
  *

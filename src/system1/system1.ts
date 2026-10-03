@@ -4,7 +4,7 @@ import { applyExtraBody } from '../utils/llms/apply-extra-body.js';
 
 /**
  * The one-token logprobs trick, shared by every System 1 answer type
- * (`system1Choice` today, `system1Score` next). The LLM always computes a
+ * (`system1Choice`, `system1Score`, `system1Noul`). The LLM always computes a
  * probability distribution over all possible tokens before it answers; these
  * helpers make the answer itself exactly one candidate symbol — a letter or a
  * digit — and read the logprobs of that single generated token, so a whole

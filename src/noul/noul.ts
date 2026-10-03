@@ -1,7 +1,7 @@
 import type { NoulAnswer } from '../types/noul-answer.js';
 import type { NoulQuestion } from '../types/noul-question.js';
 import { routeMode } from '../utils/mode/route-mode.js';
-import { system1Noul } from './system1-noul.js';
+import { system1Noul } from '../system1/noul.js';
 
 /**
  * Answers a yes/no question with the probability that the answer is "yes".

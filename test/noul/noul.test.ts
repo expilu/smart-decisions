@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { noul } from '../../src/index.js';
-import { system1Noul } from '../../src/noul/system1-noul.js';
+import { system1Noul } from '../../src/system1/noul.js';
 import type { NoulCriteria, NoulQuestion } from '../../src/types/noul-question.js';
-vi.mock('../../src/noul/system1-noul.js', () => ({
+vi.mock('../../src/system1/noul.js', () => ({
   system1Noul: vi.fn().mockResolvedValue({ noul: 0.57 }),
 }));
 

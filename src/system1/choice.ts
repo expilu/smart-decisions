@@ -1,6 +1,6 @@
 import type { ChoiceAnswer } from '../types/choice-answer.js';
 import type { Question } from '../types/question.js';
-import { system1Prompt, system1SymbolProbabilities } from '../system1/system1.js';
+import { system1Prompt, system1SymbolProbabilities } from './system1.js';
 import { normalizeEntropy } from '../utils/math/normalize-entropy.js';
 
 // The letters of the alphabet.
@@ -15,7 +15,8 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
  * generated token, so the whole decision costs one forward pass and one token:
  * an option is chosen only if its letter has the highest probability among the
  * candidate letter tokens. The logprobs-to-distribution work is shared with the
- * other System 1 questions in `src/system1/system1.ts`; this function adds what
+ * other System 1 questions in `src/system1/system1.ts`, a sibling of this file;
+ * this function adds what
  * is specific to Choice: the letter mapping, the option bounds and the argmax.
  *
  * @param question - The decision to make: options, state, instructions and the model to query.

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { score } from '../../src/index.js';
-import { system1Score } from '../../src/score/system1-score.js';
+import { system1Score } from '../../src/system1/score.js';
 import type { ScoreQuestion } from '../../src/types/score-question.js';
-vi.mock('../../src/score/system1-score.js', () => ({
+vi.mock('../../src/system1/score.js', () => ({
   system1Score: vi.fn().mockResolvedValue({
     score: 1.43,
     probabilities: { '0': 0, '1': 0.57, '2': 0.43 },

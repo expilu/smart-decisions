@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { system1Score } from '../../src/score/system1-score.js';
+import { system1Score } from '../../src/system1/score.js';
 
 // system1Score is exercised through the global fetch: each mocked response below is a
 // real Response carrying a logprobs-shaped body, so tests only need
