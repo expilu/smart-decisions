@@ -1,7 +1,12 @@
-import type { BaseQuestion } from './base-question.js';
+import type { ModeQuestion } from './mode-fields.js';
 
 /**
  * The decision to make: options, state, instructions, mode and the model to query.
+ *
+ * A {@linkcode ModeQuestion} with the criteria of the choice: the fixed set of
+ * options, no order between them. The System 2-only question fields
+ * (`thinking`, `autoModeThreshold`) are mode-validity-checked at the type
+ * level — a `thinking` set with `mode: 'system1'` does not compile.
  *
  * @example
  * ```ts
@@ -17,7 +22,7 @@ import type { BaseQuestion } from './base-question.js';
  * };
  * ```
  */
-export interface Question extends BaseQuestion {
+export type Question = ModeQuestion & {
   /** The options for the answer. Keys are option names and values are descriptions of the option. i.e. `{ walk: 'Go for a walk', movie: 'Watch a movie' }` */
   criteria: Record<string, string>;
-}
+};

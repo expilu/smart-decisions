@@ -1,7 +1,11 @@
-import type { BaseQuestion } from './base-question.js';
+import type { ModeQuestion } from './mode-fields.js';
 
 /**
  * The rating to make: ordered levels, state, instructions, mode and the model to query.
+ *
+ * A {@linkcode ModeQuestion} with the criteria of the score: the ordered level
+ * descriptions. The System 2-only question fields (`thinking`,
+ * `autoModeThreshold`) are mode-validity-checked at the type level.
  *
  * @example
  * ```ts
@@ -23,7 +27,7 @@ import type { BaseQuestion } from './base-question.js';
  * };
  * ```
  */
-export interface ScoreQuestion extends BaseQuestion {
+export type ScoreQuestion = ModeQuestion & {
   /**
    * The ordered level descriptions, from the low end of the scale to the high
    * end. A level's number is its position in the array, starting at 0; 2..10
@@ -33,4 +37,4 @@ export interface ScoreQuestion extends BaseQuestion {
    * 'Right now, drop everything']`
    */
   criteria: string[];
-}
+};

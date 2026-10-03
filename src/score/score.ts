@@ -2,6 +2,7 @@ import type { ScoreAnswer } from '../types/score-answer.js';
 import type { ScoreQuestion } from '../types/score-question.js';
 import { routeMode } from '../utils/mode/route-mode.js';
 import { system1Score } from '../system1/score.js';
+import { system2Score } from '../system2/score.js';
 
 /**
  * Rates where the given state lands on a spectrum you describe in levels.
@@ -73,5 +74,9 @@ export async function score(question: ScoreQuestion): Promise<ScoreAnswer> {
 
   // Route through the shared mode router.
   // Default to System 1.
-  return routeMode(question.mode, () => system1Score(question));
+  return routeMode(question, {
+    system1: () => system1Score(question),
+    system2: () => system2Score(question),
+    confidence: (answer) => answer.confidence,
+  });
 }

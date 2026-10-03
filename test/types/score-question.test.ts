@@ -1,4 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
+import type { Model } from '../../src/types/model.js';
 import type { Mode } from '../../src/types/mode.js';
 import type { ScoreQuestion } from '../../src/types/score-question.js';
 
@@ -7,11 +8,10 @@ import type { ScoreQuestion } from '../../src/types/score-question.js';
 // trivially at runtime.
 describe('score question', () => {
   it('has the expected fields and optionality', () => {
-    expectTypeOf<ScoreQuestion['model']>().toEqualTypeOf<
-      import('../../src/types/model.js').Model
-    >();
+    expectTypeOf<ScoreQuestion['model']>().toEqualTypeOf<Model>();
     expectTypeOf<ScoreQuestion['maxRetries']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<ScoreQuestion['timeoutMs']>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<ScoreQuestion['debug']>().toEqualTypeOf<boolean | undefined>();
     expectTypeOf<ScoreQuestion['mode']>().toEqualTypeOf<Mode | undefined>();
     expectTypeOf<ScoreQuestion['state']>().toEqualTypeOf<string>();
     expectTypeOf<ScoreQuestion['instructions']>().toEqualTypeOf<string>();

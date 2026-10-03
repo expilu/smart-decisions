@@ -1,13 +1,15 @@
-import type { Mode } from './mode.js';
 import type { Model } from './model.js';
 
 /**
- * The fields every question type shares, whatever it asks.
+ * The fields every question type shares, whatever mode answers it.
  *
  * Concretely: what evaluates the question (the `model` and its transport
  * settings), what it evaluates (`state`) and what it is asked
- * (`instructions`). The per-type answer shape — options for `choice()`,
- * ordered levels for `score()`, ... — lives in the extending interface.
+ * (`instructions`). The `mode`-dependent fields live in
+ * {@linkcode ModeQuestion} (`src/types/mode-fields.ts`) — the mode-partitioned
+ * union every question type is built from — and the per-type answer shape —
+ * options for `choice()`, ordered levels for `score()`, ... — lives in the
+ * extending type.
  *
  * @example
  * ```ts
@@ -29,8 +31,14 @@ export interface BaseQuestion {
   maxRetries?: number;
   /** Per-attempt timeout in milliseconds. Defaults to 600000 */
   timeoutMs?: number;
-  /** Choose between System 1 or System 2 mode. Defaults to `'system1'` */
-  mode?: Mode;
+  /**
+   * Log internals to stderr as the question is answered — the prompt, the wire
+   * request, the raw response, retry and validation-feedback reasons and, in
+   * System 2 mode, the model's reasoning. Global: available to System 1 and
+   * System 2 alike. Entries go out in dark gray when the stream supports ANSI
+   * color. Never logs credentials or URLs' query parameters. Defaults to false
+   */
+  debug?: boolean;
   /** The state to evaluate */
   // TODO: allow passing objects
   state: string;

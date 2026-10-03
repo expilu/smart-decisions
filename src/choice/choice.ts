@@ -2,6 +2,7 @@ import type { Question } from '../types/question.js';
 import type { ChoiceAnswer } from '../types/choice-answer.js';
 import { routeMode } from '../utils/mode/route-mode.js';
 import { system1Choice } from '../system1/choice.js';
+import { system2Choice } from '../system2/choice.js';
 
 /**
  * Decides which option best matches the given state and instructions.
@@ -56,6 +57,9 @@ export async function choice(question: Question): Promise<ChoiceAnswer> {
 
   // Route through the shared mode router.
   // Default to System 1.
-  // TODO: add an option to choose between reasoning and non-reasoning mode.
-  return routeMode(question.mode, () => system1Choice(question));
+  return routeMode(question, {
+    system1: () => system1Choice(question),
+    system2: () => system2Choice(question),
+    confidence: (answer) => answer.confidence,
+  });
 }

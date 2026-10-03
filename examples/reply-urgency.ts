@@ -15,6 +15,7 @@ const criteria = [
 ];
 
 const answer = await score({
+  debug: true,
   model: model,
   mode: 'system1',
   state:

@@ -116,4 +116,46 @@ describe('applyExtraBody', () => {
     // The reasoning_effort key the caller already set survives the merge.
     expect(merged).toHaveProperty('reasoning_effort', 'low');
   });
+
+  it('deletes a non-reserved key when its extraBody value is null', () => {
+    // null removes a library default from the wire request — the only way the
+    // merge can REMOVE a key, needed when strict servers reject one (System 2
+    // too: its narrower reserved set makes temperature deletable there).
+    const request: ChatCompletionRequest = {
+      model: 'm',
+      messages: [],
+      temperature: 0,
+      reasoning_effort: 'low',
+    };
+    const merged = applyExtraBody(request, { reasoning_effort: null, seed: null });
+    expect(merged).toEqual({ model: 'm', messages: [], temperature: 0 });
+    // `toEqual` treats undefined-valued keys and absent keys as equal, but
+    // `Object.keys` shows the key was deleted, not merely null-ed.
+    expect(Object.keys(merged)).not.toContain('reasoning_effort');
+    // A null value for a reserved key is not a deletion: reserved keys skip
+    // entirely, in every direction.
+    expect(applyExtraBody(baseline(), { temperature: null })).toEqual(baseline());
+    expect(Object.keys(applyExtraBody(baseline(), { temperature: null }))).toContain('temperature');
+  });
+
+  it('ignores null on a key that was never on the request', () => {
+    const request: ChatCompletionRequest = { model: 'm', messages: [] };
+    expect(applyExtraBody(request, { banana: null })).toEqual({ model: 'm', messages: [] });
+  });
+
+  it('honors a custom (System 2) reserved-key set: narrower protection, plus null-deletion', () => {
+    const request: ChatCompletionRequest = {
+      model: 'm',
+      messages: [],
+      temperature: 0,
+      thinking: false, // not the question's knob: an engine-specific key
+    };
+    const merged = applyExtraBody(
+      request,
+      { temperature: null, model: 'hijacked' },
+      { reservedKeys: new Set(['model', 'messages', 'stream', 'response_format']) },
+    );
+    // System 2 reserves less: temperature is deletable, model still protected.
+    expect(merged).toEqual({ model: 'm', messages: [], thinking: false });
+  });
 });

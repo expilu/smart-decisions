@@ -1,6 +1,7 @@
 import type { BaseQuestion } from '../types/base-question.js';
 import { generateText } from '../utils/llms/generate-text.js';
 import { applyExtraBody } from '../utils/llms/apply-extra-body.js';
+import { debugLog } from '../utils/debug/debug-log.js';
 
 /**
  * The one-token logprobs trick, shared by every System 1 answer type
@@ -84,9 +85,10 @@ export function system1Prompt(options: {
  * an all-zero one).
  *
  * @param question - The transport fields of the question being answered:
- *        `model` to query and the optional `maxRetries`/`timeoutMs` overrides.
- *        Extra question fields (state, instructions, the type-specific answer
- *        shape) are accepted structurally and ignored — the caller owns them.
+ *        `model` to query and the optional `maxRetries`/`timeoutMs`/`debug`
+ *        overrides. Extra question fields (state, instructions, the
+ *        type-specific answer shape) are accepted structurally and ignored —
+ *        the caller owns them.
  * @param prompt - The full user-message prompt, typically built with
  *        `system1Prompt`.
  * @param symbols - The candidate symbols in the order the distribution should
@@ -112,7 +114,7 @@ export function system1Prompt(options: {
  * ```
  */
 export async function system1SymbolProbabilities(
-  question: Pick<BaseQuestion, 'model' | 'maxRetries' | 'timeoutMs'>,
+  question: Pick<BaseQuestion, 'model' | 'maxRetries' | 'timeoutMs' | 'debug'>,
   prompt: string,
   symbols: readonly string[],
   canonicalize: (token: string) => string | null,
@@ -120,6 +122,7 @@ export async function system1SymbolProbabilities(
   // The whole decision is one forward pass generating one token. Each param below
   // nudges the model towards emitting just the chosen symbol.
   // TODO: probably better to move instructions to system prompt for KV cache reuse
+  debugLog(question.debug, 'system1', 'prompt', prompt);
   const res = await generateText(
     { apiBaseUrl: question.model.apiBaseUrl, apiKey: question.model.apiKey },
     applyExtraBody(
@@ -139,7 +142,7 @@ export async function system1SymbolProbabilities(
       },
       question.model.extraBody,
     ),
-    { maxRetries: question.maxRetries, timeoutMs: question.timeoutMs },
+    { maxRetries: question.maxRetries, timeoutMs: question.timeoutMs, debug: question.debug },
   );
 
   // The first generated token is the answer symbol; its candidate tokens carry

@@ -5,13 +5,14 @@ import type { Mode } from '../../src/types/mode.js';
 // assertions: vitest type-checks them with expectTypeOf and the tests pass
 // trivially at runtime.
 describe('mode', () => {
-  it('accepts only system1 and system2', () => {
+  it('accepts system1, system2 and auto', () => {
     expectTypeOf<'system1'>().toExtend<Mode>();
     expectTypeOf<'system2'>().toExtend<Mode>();
+    expectTypeOf<'auto'>().toExtend<Mode>();
     expectTypeOf<'system3'>().not.toExtend<Mode>();
   });
 
-  it('narrows into its two members after assignment', () => {
-    expectTypeOf<Mode>().toEqualTypeOf<'system1' | 'system2'>();
+  it('narrows into its three members after assignment', () => {
+    expectTypeOf<Mode>().toEqualTypeOf<'system1' | 'system2' | 'auto'>();
   });
 });

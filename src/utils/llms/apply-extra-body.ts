@@ -11,7 +11,7 @@ import type { ChatCompletionRequest } from '../../types/chat-completion-request.
  * distribution itself. Letting a user override any of them through `extraBody`
  * could silently corrupt the probability readout.
  */
-const RESERVED_KEYS: ReadonlySet<string> = new Set([
+const SYSTEM1_RESERVED_KEYS: ReadonlySet<string> = new Set([
   'model',
   'messages',
   'stream',
@@ -21,8 +21,31 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
   'temperature',
 ]);
 
+/**
+ * Keys reserved for System 2 requests. Narrower than System 1's: there is no
+ * logprob readout to protect, and OpenAI's hosted reasoning models reject the
+ * `temperature`/`max_tokens` this library would otherwise default, so both
+ * stay overridable (clearable with a `null` value — the way to satisfy a
+ * strict server without special-casing it here).
+ */
+export const SYSTEM2_RESERVED_KEYS: ReadonlySet<string> = new Set([
+  'model',
+  'messages',
+  'stream',
+  'response_format',
+]);
+
 /** The request key that carries chat-template arguments on OpenAI-compatible engines. */
 const CHAT_TEMPLATE_KWARGS = 'chat_template_kwargs';
+
+/** Options that tune the merge to the mode asking for it. */
+export interface ApplyExtraBodyOptions {
+  /**
+   * Keys `extraBody` may not override. Defaults to System 1's set. System 2
+   * requests pass {@linkcode SYSTEM2_RESERVED_KEYS} instead.
+   */
+  reservedKeys?: ReadonlySet<string>;
+}
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -32,8 +55,8 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
  * lets users reach engine- or model-specific settings this library does not model.
  *
  * Rules:
- * - Keys the library relies on for its own correctness (see `RESERVED_KEYS`) are
- *   ignored.
+ * - Keys the library relies on for its own correctness (see
+ *   {@linkcode ApplyExtraBodyOptions.reservedKeys}) are ignored.
  * - `__proto__` and `constructor` are ignored: `extraBody` is an arbitrary-key
  *   passthrough, and an own enumerable `__proto__` key (i.e. smuggled through
  *   `JSON.parse`) must never be able to replace the request object's prototype.
@@ -41,18 +64,23 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
  *   one level deep, so engine defaults the library sets survive, user keys win per
  *   key, and sibling model-specific keys coexist (i.e. Qwen3's `enable_thinking`
  *   alongside DeepSeek's `thinking`). A non-object value for it is ignored, keeping
- *   the engine defaults intact.
+ *   the engine defaults intact — including a `null` value, so template defaults and
+ *   deletions cannot be confused.
+ * - A `null` value for any other key deletes that key from the request — the only
+ *   way the merge can *remove* a default the library set, which OpenAI's hosted
+ *   reasoning models require (they reject `temperature` and `max_tokens`).
  * - Every other key is forwarded verbatim; OpenAI-compatible engines ignore unknown
  *   body fields, so only the keys the backend understands take effect.
  *
  * @param request - Chat completions request body in the API's own wire format.
  * @param extraBody - Extra fields to forward, typically `Model['extraBody']`.
+ * @param options - Merge tuning; defaults to System 1's reserved-key set.
  * @returns A new request body with the extras applied; the input is never mutated.
  * @example
  * ```ts
  * const request = applyExtraBody(
- *   { model: 'm', messages: [], chat_template_kwargs: { enable_thinking: false } },
- *   { chat_template_kwargs: { thinking: false }, think: false },
+ *   { model: 'm', messages: [], chat_template_kwargs: { enable_thinking: false }, temperature: 0 },
+ *   { chat_template_kwargs: { thinking: false }, think: false, temperature: null },
  * );
  * // → { model: 'm', messages: [], chat_template_kwargs: { enable_thinking: false, thinking: false }, think: false }
  * ```
@@ -60,6 +88,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 export function applyExtraBody(
   request: ChatCompletionRequest,
   extraBody: Record<string, unknown> | undefined,
+  options: ApplyExtraBodyOptions = {},
 ): ChatCompletionRequest {
   // No extras: return the request untouched, so the wire body stays byte-identical
   // to the pre-extraBody behavior.
@@ -67,11 +96,12 @@ export function applyExtraBody(
     return request;
   }
 
+  const reserved = options.reservedKeys ?? SYSTEM1_RESERVED_KEYS;
   const merged: ChatCompletionRequest = { ...request };
 
   for (const [key, value] of Object.entries(extraBody)) {
-    // Reserved keys are the library's own (see RESERVED_KEYS); skip silently.
-    if (RESERVED_KEYS.has(key)) {
+    // Reserved keys are the library's own (see reservedKeys); skip silently.
+    if (reserved.has(key)) {
       continue;
     }
 
@@ -92,6 +122,13 @@ export function applyExtraBody(
           ...value,
         };
       }
+      continue;
+    }
+
+    // null removes the key from the request (see the rules above); a key that
+    // was never on the request has nothing to remove and stays absent.
+    if (value === null) {
+      delete merged[key];
       continue;
     }
 
