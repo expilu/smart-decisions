@@ -1,5 +1,15 @@
 # smart-decisions
 
+## 0.6.0
+
+### Minor Changes
+
+- [#26](https://github.com/expilu/smart-decisions/pull/26) [`3c80dd7`](https://github.com/expilu/smart-decisions/commit/3c80dd7f8c37cc4bd8c0c92fa7e887c5e9fbf561) - Added `mode: 'auto'`: the question runs System 1 first and escalates exactly once to System 2 when the answer's confidence falls below `autoModeThreshold` (default 0.7; for `noul()` the confidence equivalent is `max(noul, 1 − noul)`). The escalated answer is returned as-is even at low confidence — one deliberate pass, never a loop. Confident System 1 answers complete without touching System 2, so the fast path stays in the milliseconds.
+
+- [#26](https://github.com/expilu/smart-decisions/pull/26) [`3c80dd7`](https://github.com/expilu/smart-decisions/commit/3c80dd7f8c37cc4bd8c0c92fa7e887c5e9fbf561) - Added global debug logging: `debug: true` on any question (both modes) logs the internals to stderr — the prompt, the wire request body, the endpoint, raw responses with their HTTP status, every retry with its reason and backoff, and in System 2 the model's reasoning text and each structured-rejection reason.
+
+- [#26](https://github.com/expilu/smart-decisions/pull/26) [`3c80dd7`](https://github.com/expilu/smart-decisions/commit/3c80dd7f8c37cc4bd8c0c92fa7e887c5e9fbf561) - Implement System 2 mode (`mode: 'system2'`) for `choice()`, `score()` and `noul()`: the model deliberates and answers a minimal structured object — one integer 0..10 rating per candidate — and the same answer shapes as System 1 come out of it (winner = argmax, distribution = normalized ratings, same entropy confidence). Requests use `response_format` with a strict ratings schema, `temperature: 0`, no default token budget, and a parse-validate-retry fallback that feeds rejection reasons back to the model so engines with broken or missing structured-output support still work. Adds the `thinking` question option (valid in 'system2'/'auto' mode; `false` sends `reasoning_effort: 'none'`) and the mode-partitioned question types: `Question`, `ScoreQuestion` and `NoulQuestion` switch from interfaces to unions over `mode`, so `thinking` set with `mode: 'system1'` no longer compiles — breaking for consumers extending those types with `interface X extends ...` (allowed by semver at 0.x).
+
 ## 0.5.0
 
 ### Minor Changes
