@@ -1,7 +1,7 @@
 import type { ScoreAnswer } from '../types/score-answer.js';
 import type { ScoreQuestion } from '../types/score-question.js';
 import { routeMode } from '../utils/mode/route-mode.js';
-import { system1Score } from './system1-score.js';
+import { system1Score } from '../system1/score.js';
 
 /**
  * Rates where the given state lands on a spectrum you describe in levels.

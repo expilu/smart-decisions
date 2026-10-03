@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { system1Choice } from '../../src/choice/system1-choice.js';
+import { system1Choice } from '../../src/system1/choice.js';
 
 // system1Choice is exercised through the global fetch: each mocked response below is a
 // real Response carrying a logprobs-shaped body, so tests only need

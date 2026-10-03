@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { system1Noul } from '../../src/noul/system1-noul.js';
+import { system1Noul } from '../../src/system1/noul.js';
 
 // system1Noul is exercised through the global fetch: each mocked response below is a
 // real Response carrying a logprobs-shaped body, so tests only need

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { choice } from '../../src/index.js';
-import { system1Choice } from '../../src/choice/system1-choice.js';
+import { system1Choice } from '../../src/system1/choice.js';
 import type { Question } from '../../src/types/question.js';
-vi.mock('../../src/choice/system1-choice.js', () => ({
+vi.mock('../../src/system1/choice.js', () => ({
   system1Choice: vi.fn().mockResolvedValue({
     choice: 'mocked',
     probabilities: { a: 1 },
